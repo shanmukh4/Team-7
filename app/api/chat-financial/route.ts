@@ -49,7 +49,7 @@ async function getUserRoleFromSession(req: Request): Promise<string> {
 
 function getFinancialContext() {
   return `
-## Goldman Sachs Trading & Financial Data
+## GSAI Trading & Financial Data
 
 ### Trading Desks
 ${JSON.stringify(tradingDesks, null, 2)}
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     // NOTE: Financial chatbot is NOT restricted - works for all users
     console.log(`[CHAT-FINANCIAL API] Processing query for role: ${userRole}`)
 
-    const systemPrompt = `You are an AI Finance Assistant for Goldman Sachs Daily P&L Reconciliation system. You specialize in analyzing trading desk anomalies, P&L variances, and providing financial insights.
+    const systemPrompt = `You are GSAI for the Goldman Sachs Daily P&L Reconciliation system. You specialize in analyzing trading desk anomalies, P&L variances, and providing financial insights.
 
 ${getFinancialContext()}
 

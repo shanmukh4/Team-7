@@ -56,7 +56,7 @@ async function getUserRoleFromSession(req: Request): Promise<string> {
 
 function getDatabaseContext() {
   return `
-## Goldman Sachs Client Database
+## GSAI Client Database
 
 ### Companies Overview
 ${JSON.stringify(companies, null, 2)}
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
 
     console.log(`[CHAT API] Authorization Successful - Role: ${userRole}`)
 
-    const systemPrompt = `You are an expert P&L Reconciliation AI for Goldman Sachs Trading Platform. You have access to comprehensive trading data including P&L reconciliation, anomaly detection, and trading desk management.
+    const systemPrompt = `You are GSAI for the Goldman Sachs Trading Platform. You have access to comprehensive trading data including P&L reconciliation, anomaly detection, and trading desk management.
 
 When analyzing P&L anomalies, provide CONCISE analysis in 5-10 lines maximum.
 

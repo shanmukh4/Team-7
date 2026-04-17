@@ -7,7 +7,7 @@ import { DefaultChatTransport } from "ai"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Send, Sparkles, Bot, Zap, AlertCircle, Lock } from "lucide-react"
+import { Send, Sparkles, Bot, Zap, AlertCircle, Lock, Mic } from "lucide-react"
 import { ComparisonChart } from "./comparison-chart"
 import { useChatbot } from "./chatbot-provider"
 import { anomalyStateService } from "@/components/anomaly-state.service"
@@ -37,6 +37,9 @@ export function ChatbotWidget() {
   const [error, setError] = useState<ErrorResponse | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [speechSupported, setSpeechSupported] = useState(false)
+  const recognitionRef = useRef<any>(null)
   const { pendingAnomaly, setPendingAnomaly, onAnomalyResolved } = useChatbot()
   const pathname = usePathname()
 
@@ -65,6 +68,57 @@ export function ChatbotWidget() {
 
     fetchUserData()
   }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setSpeechSupported(false)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = "en-US"
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    recognition.continuous = false
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0]?.transcript || "")
+        .join(" ")
+        .trim()
+
+      if (transcript) {
+        setInput((current) => `${current ? current + " " : ""}${transcript}`)
+      }
+    }
+
+    recognition.onend = () => {
+      setRecording(false)
+    }
+
+    recognition.onerror = (event: any) => {
+      console.error("[CHATBOT] Speech recognition error:", event)
+      setRecording(false)
+    }
+
+    recognitionRef.current = recognition
+    setSpeechSupported(true)
+  }, [])
+
+  const handleVoiceToggle = () => {
+    if (!speechSupported || !recognitionRef.current) return
+
+    if (recording) {
+      recognitionRef.current.stop()
+      setRecording(false)
+    } else {
+      setRecording(true)
+      recognitionRef.current.start()
+    }
+  }
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -331,8 +385,8 @@ Please provide a detailed analysis and solution recommendations. After analysis,
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div>
-                <CardTitle className="text-sm font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">GS AI Assistant</CardTitle>
-                <p className="text-xs text-violet-300/60">Goldman Sachs</p>
+                <CardTitle className="text-sm font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">GSAI Assistant</CardTitle>
+                <p className="text-xs text-violet-300/60">Voice-enabled financial AI</p>
               </div>
             </div>
             <div className="text-xs text-violet-300/50 font-medium">Right panel</div>
@@ -479,10 +533,20 @@ Please provide a detailed analysis and solution recommendations. After analysis,
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask a question..."
+                placeholder="Ask a question or tap the mic to speak..."
                 disabled={isLoading}
                 className="flex-1 bg-slate-800/60 border-slate-700/50 text-white placeholder-slate-500 focus-visible:ring-violet-500 focus-visible:border-violet-500"
               />
+              <Button
+                type="button"
+                onClick={handleVoiceToggle}
+                disabled={!speechSupported || isLoading}
+                size="icon"
+                variant="outline"
+                className={`border-slate-700/50 text-white ${recording ? 'bg-violet-700/80' : 'bg-slate-800/60'} hover:bg-violet-600/70 shadow-lg shadow-violet-500/20 disabled:opacity-50`}
+              >
+                <Mic className={`w-4 h-4 ${recording ? 'text-emerald-200' : 'text-white'}`} />
+              </Button>
               <Button
                 type="submit"
                 disabled={isLoading || !input.trim()}
