@@ -1,4 +1,7 @@
 import { convertToModelMessages, streamText, UIMessage } from "ai"
+import { cookies } from "next/headers"
+import fs from "fs/promises"
+import path from "path"
 import companies from "@/data/companies.json"
 import crm from "@/data/crm.json"
 import assetManagement from "@/data/asset_management.json"
@@ -9,13 +12,33 @@ import riskAnalysis from "@/data/risk_analysis.json"
 import relationshipHistory from "@/data/relationship_history.json"
 import { google } from "@ai-sdk/google"
 import { authorize } from "@/app/api/utils/simple-rbac"
-import { getSessionFromRequest } from "@/lib/session"
 
 export const maxDuration = 30
 
 async function getUserRoleFromSession(req: Request): Promise<string> {
   try {
-    const session = getSessionFromRequest(req)
+    // Try to get session ID from cookie or body
+    const cookieStore = await cookies()
+    let sessionId = cookieStore.get("gs_session_id")?.value
+
+    // If no cookie, try to extract from request body or headers
+    if (!sessionId) {
+      const authHeader = req.headers.get("x-session-id")
+      if (authHeader) {
+        sessionId = authHeader
+      }
+    }
+
+    if (!sessionId) {
+      return "unknown"
+    }
+
+    // Read sessions file
+    const sessionsFile = path.join(process.cwd(), "data", "sessions.json")
+    const data = await fs.readFile(sessionsFile, "utf-8")
+    const sessionsData = JSON.parse(data) as { sessions: Array<{ sessionId: string; role: string }> }
+    
+    const session = sessionsData.sessions.find(s => s.sessionId === sessionId)
     return session?.role || "unknown"
   } catch (error) {
     console.error("[CHAT API] Error getting user role:", error)

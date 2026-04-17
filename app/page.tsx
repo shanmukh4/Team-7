@@ -5,7 +5,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 
 const ADMIN_EMAIL = "admin@goldmansachs.com"
-const ADMIN_PASSWORD = "admin123"
+const ADMIN_PASSWORD = "goldmansachs_admin"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -20,6 +20,12 @@ export default function LoginPage() {
     setError("")
 
     try {
+      // Admin shortcut: redirect to admin page
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        router.push('/admin')
+        return
+      }
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,24 +39,7 @@ export default function LoginPage() {
         return
       }
 
-      if (data.isAdmin) {
-        try {
-          localStorage.setItem('gs_session_id', 'valid_admin_session')
-          localStorage.setItem('gs_user', JSON.stringify({
-            email,
-            role: 'admin',
-            name: 'Admin',
-          }))
-          localStorage.setItem('isAuthenticated', 'true')
-        } catch (e) {
-          // ignore if storage not available
-        }
-
-        router.push('/dashboard/admin')
-        return
-      }
-
-      // Create server-side session for non-admin users
+      // Create server-side session
       const sessionRes = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

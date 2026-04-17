@@ -13,28 +13,8 @@ export default function AdminPage() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    const initialize = async () => {
-      try {
-        const sessionRes = await fetch('/api/auth/session', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        })
-        const sessionData = await sessionRes.json()
-        if (!sessionData.success || sessionData.session?.role !== 'admin') {
-          router.push('/')
-          return
-        }
-
-        await fetchUsers()
-      } catch (err) {
-        console.error('[ADMIN PAGE] Session validation failed', err)
-        router.push('/')
-      }
-    }
-
-    initialize()
-  }, [router])
+    fetchUsers()
+  }, [])
 
   const roleCounts = useMemo(() => {
     const totals: Record<string, number> = {}
@@ -44,11 +24,7 @@ export default function AdminPage() {
 
   async function fetchUsers() {
     try {
-      const res = await fetch('/api/users', {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      })
+      const res = await fetch('/api/users')
       const data = await res.json()
       setUsers(data.users || [])
     } catch (err) {
@@ -63,7 +39,6 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUser),
       })
@@ -84,7 +59,6 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/users', {
         method: 'DELETE',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       })

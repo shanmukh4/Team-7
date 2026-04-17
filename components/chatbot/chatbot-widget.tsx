@@ -37,21 +37,17 @@ export function ChatbotWidget() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const { pendingAnomaly, setPendingAnomaly, onAnomalyResolved } = useChatbot()
 
-  // Get user role from server session on mount
+  // Get user role from localStorage on mount
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchUserRole = () => {
       try {
-        const res = await fetch('/api/auth/session', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        })
-        const data = await res.json()
-        if (data.success && data.session) {
-          setUserRole(data.session.role)
-          console.log("[CHATBOT] User role from session:", data.session.role)
+        const userStr = localStorage.getItem('gs_user')
+        if (userStr) {
+          const user = JSON.parse(userStr)
+          setUserRole(user.role)
+          console.log("[CHATBOT] User role from storage:", user.role)
         } else {
-          console.log("[CHATBOT] No user session available")
+          console.log("[CHATBOT] No user data found")
         }
       } catch (error) {
         console.error("[CHATBOT] Failed to load user role:", error)

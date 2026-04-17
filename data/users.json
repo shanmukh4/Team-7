@@ -1,6 +1,13 @@
 {
   "users": [
     {
+      "id": "1776455557348",
+      "email": "ram@goldmansachs.com",
+      "password": "1234",
+      "role": "Financial",
+      "name": "Ram"
+    },
+    {
       "id": "1776087332479",
       "email": "pranav@goldmansachs.com",
       "password": "1234567",

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -47,29 +46,30 @@ export default function AnomaliesPage() {
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        const res = await fetch('/api/auth/session', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        })
-        const data = await res.json()
-
-        if (!data.success || !data.session) {
-          router.push('/')
+        const sessionId = localStorage.getItem("gs_session_id")
+        if (!sessionId) {
+          setUserRole("unknown")
+          setIsLoading(false)
           return
         }
 
-        setUserRole(data.session.role)
+        const userStr = localStorage.getItem('gs_user')
+        if (userStr) {
+          const user = JSON.parse(userStr)
+          setUserRole(user.role)
+        } else {
+          setUserRole("unknown")
+        }
       } catch (error) {
         console.error("[ANOMALIES] Error fetching user role:", error)
-        router.push('/')
+        setUserRole("unknown")
       } finally {
         setIsLoading(false)
       }
     }
 
     checkUserRole()
-  }, [router])
+  }, [])
 
   // Reset anomalies on mount (no persistence)
   useEffect(() => {

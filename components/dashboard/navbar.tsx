@@ -74,19 +74,18 @@ export function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      const sessionId = localStorage.getItem("gs_session_id")
+      if (sessionId) {
+        await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'destroy' }),
+        })
+      }
     } catch (error) {
-      console.error("[NAVBAR] Failed to logout:", error)
+      console.error("[NAVBAR] Failed to destroy session:", error)
     }
-
-    try {
-      document.cookie = 'gs_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
-      document.cookie = 'gs_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
-      document.cookie = 'gs_email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
-    } catch (error) {
-      console.warn('[NAVBAR] Cookie clear failed:', error)
-    }
-
+    
     localStorage.removeItem("gs_session_id")
     localStorage.removeItem("gs_user")
     localStorage.removeItem("isAuthenticated")

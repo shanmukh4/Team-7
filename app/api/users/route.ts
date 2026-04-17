@@ -1,66 +1,74 @@
 import { NextResponse } from "next/server"
-import { createUser, deleteUserById, getAllUsers } from "@/lib/userStore"
-import { getSessionFromRequest } from "@/lib/session"
+import fs from "fs/promises"
+import path from "path"
 
-function isAdminSession(request: Request) {
-  const session = getSessionFromRequest(request)
-  return session?.role === "admin"
+const USERS_FILE = path.join(process.cwd(), "data", "users.json")
+
+async function readUsers() {
+  try {
+    const raw = await fs.readFile(USERS_FILE, "utf8")
+    return JSON.parse(raw)
+  } catch (err) {
+    return { users: [] }
+  }
 }
 
-export async function GET(request: Request) {
-  try {
-    if (!isAdminSession(request)) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 403 })
-    }
+async function writeUsers(data: any) {
+  await fs.writeFile(USERS_FILE, JSON.stringify(data, null, 2), "utf8")
+}
 
-    const users = await getAllUsers()
-    return NextResponse.json({ success: true, users })
+export async function GET() {
+  try {
+    const data = await readUsers()
+    return NextResponse.json(data)
   } catch (err) {
-    console.error("[USERS API] GET Error:", err)
-    return NextResponse.json({ success: false, users: [] }, { status: 500 })
+    console.error(err)
+    return NextResponse.json({ users: [] })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    if (!isAdminSession(request)) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 403 })
+    const body = await request.json()
+    const { email, password, role = "Financial", name = "" } = body
+
+    if (!email || !password) {
+      return NextResponse.json({ success: false, message: "Missing email or password" }, { status: 400 })
     }
 
-    const { name, email, password, role = "Financial" } = await request.json()
-    if (!name || !email || !password) {
-      return NextResponse.json({ success: false, message: "Name, email and password are required" }, { status: 400 })
+    const data = await readUsers()
+    const exists = (data.users || []).some((u: any) => u.email === email)
+    if (exists) {
+      return NextResponse.json({ success: false, message: "User already exists" }, { status: 409 })
     }
 
-    const user = await createUser({ name, email, password, role })
+    const id = Date.now().toString()
+    const user = { id, email, password, role, name }
+    data.users = [user, ...(data.users || [])]
+    await writeUsers(data)
+
     return NextResponse.json({ success: true, user })
   } catch (err) {
-    console.error("[USERS API] POST Error:", err)
-    return NextResponse.json(
-      { success: false, message: err instanceof Error ? err.message : "Could not add user" },
-      { status: 500 }
-    )
+    console.error(err)
+    return NextResponse.json({ success: false, message: "Could not add user" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    if (!isAdminSession(request)) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 403 })
-    }
-
     const { id } = await request.json()
-    if (!id) {
-      return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 })
-    }
+    if (!id) return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 })
 
-    await deleteUserById(String(id))
+    const data = await readUsers()
+    const before = (data.users || []).length
+    data.users = (data.users || []).filter((u: any) => u.id !== id)
+    if (data.users.length === before) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 })
+    }
+    await writeUsers(data)
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error("[USERS API] DELETE Error:", err)
-    return NextResponse.json(
-      { success: false, message: err instanceof Error ? err.message : "Could not delete user" },
-      { status: 500 }
-    )
+    console.error(err)
+    return NextResponse.json({ success: false, message: "Could not delete user" }, { status: 500 })
   }
 }

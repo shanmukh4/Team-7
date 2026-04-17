@@ -1,21 +1,45 @@
-import { NextRequest, NextResponse } from "next/server"
-import { destroySessionResponse, getSessionFromRequest } from "@/lib/session"
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { action } = await req.json()
-    if (action === "destroy" || action === "delete") {
-      return destroySessionResponse()
+    const { action, email, role, name } = await req.json()
+
+    if (action === 'create') {
+      // Generate sessionId using Date.now()
+      const sessionId = `session_${Date.now()}`
+      const loginTime = new Date().toISOString()
+
+      const session = {
+        sessionId,
+        email,
+        role,
+        name,
+        loginTime,
+        isActive: true
+      }
+
+      return NextResponse.json({
+        success: true,
+        sessionId,
+        session
+      })
+    }
+
+    if (action === 'destroy') {
+      return NextResponse.json({
+        success: true,
+        message: 'Session ended'
+      })
     }
 
     return NextResponse.json(
-      { success: false, message: "Use /api/auth/login to create a session" },
+      { success: false, message: 'Invalid action' },
       { status: 400 }
     )
   } catch (error) {
-    console.error("[SESSION API] Error:", error)
+    console.error('[SESSION API] Error:', error)
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, message: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -23,16 +47,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSessionFromRequest(req)
-    if (!session) {
-      return NextResponse.json({ success: false, message: "Session not found" }, { status: 401 })
-    }
-
-    return NextResponse.json({ success: true, session })
+    return NextResponse.json({
+      success: true,
+      sessions: []
+    })
   } catch (error) {
-    console.error("[SESSION API] Error:", error)
+    console.error('[SESSION API] Error:', error)
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, message: 'Internal server error' },
       { status: 500 }
     )
   }

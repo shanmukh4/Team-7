@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 const ADMIN_EMAIL = "admin@goldmansachs.com"
-const ADMIN_PASSWORD = "admin123"
+const ADMIN_PASSWORD = "goldmansachs_admin"
 
 // Mock users data for production compatibility
 const mockUsers = [
@@ -37,18 +37,7 @@ export async function POST(request: Request) {
 
     // Hardcoded admin path
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      const response = NextResponse.json({ success: true, isAdmin: true })
-      const cookieOptions = {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const,
-        path: '/',
-      }
-
-      response.cookies.set('gs_session', 'valid_admin_session', cookieOptions)
-      response.cookies.set('gs_role', 'admin', cookieOptions)
-      response.cookies.set('gs_email', ADMIN_EMAIL, cookieOptions)
-
-      return response
+      return NextResponse.json({ success: true, isAdmin: true })
     }
 
     // Find user in mock data
