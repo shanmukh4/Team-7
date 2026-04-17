@@ -7,7 +7,7 @@ import { DefaultChatTransport } from "ai"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Send, Sparkles, Bot, Zap, AlertCircle, Lock, Mic } from "lucide-react"
+import { Send, Sparkles, Bot, Zap, AlertCircle, Lock, Mic, Globe } from "lucide-react"
 import { ComparisonChart } from "./comparison-chart"
 import { useChatbot } from "./chatbot-provider"
 import { anomalyStateService } from "@/components/anomaly-state.service"
@@ -40,10 +40,38 @@ export function ChatbotWidget() {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(true)
+  const [speechLanguage, setSpeechLanguage] = useState<'en-IN' | 'en-US'>('en-IN')
   const recognitionRef = useRef<any>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const { pendingAnomaly, setPendingAnomaly, onAnomalyResolved } = useChatbot()
   const pathname = usePathname()
+
+  // Helper function to clean duplicate phrases
+  const cleanDuplicatePhrases = (text: string): string => {
+    // Remove repeated words like "this is this is" -> "this is"
+    const words = text.split(' ')
+    const cleaned: string[] = []
+    
+    for (let i = 0; i < words.length; i++) {
+      const currentWord = words[i].toLowerCase()
+      const nextWord = words[i + 1]?.toLowerCase()
+      
+      // Skip if this word is the same as the next word (simple duplicate detection)
+      if (currentWord === nextWord && currentWord.length > 2) {
+        continue
+      }
+      
+      cleaned.push(words[i])
+    }
+    
+    return cleaned.join(' ')
+  }
+
+  // Helper function to auto-capitalize first letter
+  const capitalizeFirstLetter = (text: string): string => {
+    if (!text) return text
+    return text.charAt(0).toUpperCase() + text.slice(1)
+  }
 
   // Get user role and session from localStorage on mount
   useEffect(() => {
@@ -82,7 +110,7 @@ export function ChatbotWidget() {
     }
 
     const recognition = new SpeechRecognition()
-    recognition.lang = "en-US"
+    recognition.lang = speechLanguage
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     recognition.continuous = false
@@ -94,25 +122,49 @@ export function ChatbotWidget() {
     }
 
     recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results)
-        .map((result: any) => result[0]?.transcript || "")
-        .join(" ")
-        .trim()
-
-      if (transcript) {
-        setInput((current) => current ? `${current} ${transcript}` : transcript)
+      // Use only the latest result to prevent duplication
+      const resultIndex = event.resultIndex
+      const result = event.results[resultIndex]
+      
+      if (result && result[0]) {
+        const transcript = result[0].transcript.trim()
+        const confidence = result[0].confidence || 0
+        
+        // Only use results with reasonable confidence
+        if (confidence > 0.5 || transcript.length > 0) {
+          // Clean duplicates and capitalize first letter
+          const cleanedTranscript = cleanDuplicatePhrases(transcript)
+          const capitalizedTranscript = capitalizeFirstLetter(cleanedTranscript)
+          
+          setInput((current) => {
+            // If there's existing text, append with space
+            // If empty, use the transcript directly
+            return current ? `${current} ${capitalizedTranscript}` : capitalizedTranscript
+          })
+        }
       }
     }
 
     recognition.onend = () => {
       setRecording(false)
-      inputRef.current?.focus()
+      // Small delay before focusing to prevent interference
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 100)
     }
 
     recognition.onerror = (event: any) => {
       console.error("[CHATBOT] Speech recognition error:", event)
       if (event.error === "not-allowed" || event.error === "permission-denied") {
         setVoiceError("Microphone permission denied")
+      } else if (event.error === "language-not-supported") {
+        // Fallback to en-US if en-IN is not supported
+        if (speechLanguage === 'en-IN') {
+          console.log("[CHATBOT] en-IN not supported, falling back to en-US")
+          setSpeechLanguage('en-US')
+          return
+        }
+        setVoiceError("Voice input not supported")
       } else {
         setVoiceError("Voice input not supported")
       }
@@ -122,7 +174,7 @@ export function ChatbotWidget() {
 
     recognitionRef.current = recognition
     setSpeechSupported(true)
-  }, [])
+  }, [speechLanguage])
 
   const handleVoiceToggle = () => {
     if (!recognitionRef.current) {
@@ -552,6 +604,23 @@ Please provide a detailed analysis and solution recommendations. After analysis,
 
             {comparisonData && <ComparisonChart data={comparisonData} />}
             <div ref={bottomRef} />
+          </div>
+
+          {/* Language Selector */}
+          <div className="px-4 py-2 border-t border-violet-900/20 bg-gradient-to-r from-violet-900/5 to-transparent">
+            <div className="flex items-center gap-2 text-xs">
+              <Globe className="w-3 h-3 text-violet-400" />
+              <span className="text-violet-300/70">Voice Language:</span>
+              <select
+                value={speechLanguage}
+                onChange={(e) => setSpeechLanguage(e.target.value as 'en-IN' | 'en-US')}
+                className="bg-slate-800/60 border border-slate-700/50 text-violet-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                disabled={recording}
+              >
+                <option value="en-IN">English (India)</option>
+                <option value="en-US">English (US)</option>
+              </select>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="p-4 border-t border-violet-900/30 bg-gradient-to-t from-slate-950 to-slate-900/50 backdrop-blur-sm">
