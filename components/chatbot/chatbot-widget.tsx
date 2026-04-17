@@ -115,7 +115,6 @@ export function ChatbotWidget() {
 
     recognition.onstart = () => {
       setRecording(true)
-      setVoiceError(null)
       inputRef.current?.focus()
     }
 
@@ -163,7 +162,7 @@ export function ChatbotWidget() {
 
   const handleVoiceToggle = () => {
     if (!recognitionRef.current) {
-      setVoiceError("Voice input not supported")
+      console.error("[CHATBOT] Speech recognition not initialized")
       return
     }
 
@@ -173,12 +172,10 @@ export function ChatbotWidget() {
       return
     }
 
-    setVoiceError(null)
     try {
       recognitionRef.current.start()
     } catch (error) {
       console.error("[CHATBOT] Speech recognition start error:", error)
-      setVoiceError("Voice input not supported")
       setRecording(false)
     }
   }
