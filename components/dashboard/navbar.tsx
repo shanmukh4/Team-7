@@ -29,21 +29,16 @@ export function Navbar() {
   const [userRole, setUserRole] = useState("")
 
   useEffect(() => {
-    const fetchUserSession = async () => {
+    const fetchUserSession = () => {
       try {
-        const res = await fetch('/api/auth/session', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        })
-
-        const data = await res.json()
-        if (data.success && data.session) {
-          setUserEmail(data.session.email)
-          setUserRole(data.session.role)
-          console.log("[NAVBAR] User session loaded:", data.session.email)
+        const userStr = localStorage.getItem('gs_user')
+        if (userStr) {
+          const user = JSON.parse(userStr)
+          setUserEmail(user.email)
+          setUserRole(user.role)
+          console.log("[NAVBAR] User session loaded:", user.email)
         } else {
-          console.log("[NAVBAR] No user session available")
+          console.log("[NAVBAR] No user data found")
         }
       } catch (error) {
         console.error("[NAVBAR] Failed to load user data:", error)
@@ -79,14 +74,22 @@ export function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      })
+      await fetch('/api/auth/logout', { method: 'POST' })
     } catch (error) {
       console.error("[NAVBAR] Failed to logout:", error)
     }
 
+    try {
+      document.cookie = 'gs_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
+      document.cookie = 'gs_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
+      document.cookie = 'gs_email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
+    } catch (error) {
+      console.warn('[NAVBAR] Cookie clear failed:', error)
+    }
+
+    localStorage.removeItem("gs_session_id")
+    localStorage.removeItem("gs_user")
+    localStorage.removeItem("isAuthenticated")
     router.push("/")
   }
 

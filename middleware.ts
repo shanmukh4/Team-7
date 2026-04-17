@@ -16,6 +16,15 @@ export function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  if (pathname === '/admin') {
+    if (gsSession && gsRole === 'admin') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/dashboard/admin'
+      return NextResponse.redirect(url)
+    }
+    return NextResponse.next()
+  }
+
   if (pathname === '/dashboard/admin') {
     if (!gsSession || gsRole !== 'admin') {
       const url = req.nextUrl.clone()
