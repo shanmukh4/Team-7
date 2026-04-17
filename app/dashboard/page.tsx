@@ -121,23 +121,30 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    const fetchUserSession = () => {
+    const initialize = async () => {
       try {
-        const userStr = localStorage.getItem('gs_user')
-        if (userStr) {
-          const user = JSON.parse(userStr)
-          setUserName(user.name || user.email.split("@")[0])
-          setUserRole(user.role)
-          console.log("[SALES DASHBOARD] User session loaded:", user.name, "Role:", user.role)
-        } else {
-          console.log("[SALES DASHBOARD] No user data found")
+        const sessionRes = await fetch('/api/auth/session', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        })
+        const sessionData = await sessionRes.json()
+
+        if (!sessionData.success || !sessionData.session) {
+          router.push('/')
+          return
         }
+
+        setUserName(sessionData.session.name || sessionData.session.email.split("@")[0])
+        setUserRole(sessionData.session.role)
+        console.log("[DASHBOARD] User session loaded:", sessionData.session.email, "Role:", sessionData.session.role)
       } catch (error) {
-        console.error("[SALES DASHBOARD] Failed to load user data:", error)
+        console.error("[DASHBOARD] Failed to load user session:", error)
+        router.push('/')
       }
     }
 
-    fetchUserSession()
+    initialize()
 
     // Fetch companies
     fetch("/api/companies")
@@ -150,7 +157,7 @@ export default function DashboardPage() {
       .then((res) => res.json())
       .then((data) => setAnomalyCount(data.anomalies.length))
       .catch(console.error)
-  }, [])
+  }, [router])
 
   const stats = [
     { label: "Total Clients", value: "3", icon: Building2, color: "text-primary" },

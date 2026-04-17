@@ -29,16 +29,21 @@ export function Navbar() {
   const [userRole, setUserRole] = useState("")
 
   useEffect(() => {
-    const fetchUserSession = () => {
+    const fetchUserSession = async () => {
       try {
-        const userStr = localStorage.getItem('gs_user')
-        if (userStr) {
-          const user = JSON.parse(userStr)
-          setUserEmail(user.email)
-          setUserRole(user.role)
-          console.log("[NAVBAR] User session loaded:", user.email)
+        const res = await fetch('/api/auth/session', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        })
+
+        const data = await res.json()
+        if (data.success && data.session) {
+          setUserEmail(data.session.email)
+          setUserRole(data.session.role)
+          console.log("[NAVBAR] User session loaded:", data.session.email)
         } else {
-          console.log("[NAVBAR] No user data found")
+          console.log("[NAVBAR] No user session available")
         }
       } catch (error) {
         console.error("[NAVBAR] Failed to load user data:", error)
@@ -74,21 +79,14 @@ export function Navbar() {
 
   const handleLogout = async () => {
     try {
-      const sessionId = localStorage.getItem("gs_session_id")
-      if (sessionId) {
-        await fetch('/api/sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'destroy' }),
-        })
-      }
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
     } catch (error) {
-      console.error("[NAVBAR] Failed to destroy session:", error)
+      console.error("[NAVBAR] Failed to logout:", error)
     }
-    
-    localStorage.removeItem("gs_session_id")
-    localStorage.removeItem("gs_user")
-    localStorage.removeItem("isAuthenticated")
+
     router.push("/")
   }
 

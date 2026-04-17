@@ -1,37 +1,15 @@
 import { convertToModelMessages, streamText, UIMessage } from "ai"
-import { cookies } from "next/headers"
-import fs from "fs/promises"
-import path from "path"
 import tradingDesks from "@/data/trading_desks.json"
 import marketData from "@/data/market_data.json"
 import fxRates from "@/data/fx_rates.json"
 import { google } from "@ai-sdk/google"
+import { getSessionFromRequest } from "@/lib/session"
 
 export const maxDuration = 30
 
 async function getUserRoleFromSession(req: Request): Promise<string> {
   try {
-    const cookieStore = await cookies()
-    let sessionId = cookieStore.get("gs_session_id")?.value
-
-    if (!sessionId) {
-      const authHeader = req.headers.get("x-session-id")
-      if (authHeader) {
-        sessionId = authHeader
-      }
-    }
-
-    if (!sessionId) {
-      return "unknown"
-    }
-
-    const sessionsFile = path.join(process.cwd(), "data", "sessions.json")
-    const data = await fs.readFile(sessionsFile, "utf-8")
-    const sessionsData = JSON.parse(data) as {
-      sessions: Array<{ sessionId: string; role: string }>
-    }
-
-    const session = sessionsData.sessions.find((s) => s.sessionId === sessionId)
+    const session = getSessionFromRequest(req)
     return session?.role || "unknown"
   } catch (error) {
     console.error("[CHAT-FINANCIAL API] Error getting user role:", error)
