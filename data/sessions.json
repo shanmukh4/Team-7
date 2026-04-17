@@ -8,6 +8,15 @@
       "loginTime": "2026-04-17T08:25:01.209Z",
       "lastActivityTime": "2026-04-17T08:25:09.718Z",
       "isActive": true
+    },
+    {
+      "sessionId": "session_1776445052146",
+      "email": "pranav@goldmansachs.com",
+      "role": "Sales",
+      "name": "Pranav",
+      "loginTime": "2026-04-17T16:57:32.146Z",
+      "lastActivityTime": "2026-04-17T16:58:56.136Z",
+      "isActive": true
     }
   ]
 }
