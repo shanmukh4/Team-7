@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Button } from "@/components/ui/button"
@@ -35,11 +36,13 @@ export function ChatbotWidget() {
   const [isAnomalyMode, setIsAnomalyMode] = useState(false)
   const [error, setError] = useState<ErrorResponse | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const { pendingAnomaly, setPendingAnomaly, onAnomalyResolved } = useChatbot()
+  const pathname = usePathname()
 
-  // Get user role from localStorage on mount
+  // Get user role and session from localStorage on mount
   useEffect(() => {
-    const fetchUserRole = () => {
+    const fetchUserData = () => {
       try {
         const userStr = localStorage.getItem('gs_user')
         if (userStr) {
@@ -49,12 +52,18 @@ export function ChatbotWidget() {
         } else {
           console.log("[CHATBOT] No user data found")
         }
+
+        const sessId = localStorage.getItem('gs_session_id')
+        if (sessId) {
+          setSessionId(sessId)
+          console.log("[CHATBOT] Session ID from storage:", sessId)
+        }
       } catch (error) {
-        console.error("[CHATBOT] Failed to load user role:", error)
+        console.error("[CHATBOT] Failed to load user data:", error)
       }
     }
 
-    fetchUserRole()
+    fetchUserData()
   }, [])
 
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -109,10 +118,17 @@ export function ChatbotWidget() {
     }
   }
 
+  const isFinancial = pathname.includes('/financial')
+  const api = isFinancial ? '/api/chat-financial' : '/api/chat'
+
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/chat",
+      api,
     }),
+    headers: {
+      'x-user-role': userRole || 'unknown',
+      'x-session-id': sessionId || '',
+    },
     onError: (error) => {
       console.error("[CHATBOT] Error:", error)
       // Try to extract the error response from the error object

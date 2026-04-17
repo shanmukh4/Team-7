@@ -21,18 +21,26 @@ async function getUserRoleFromSession(req: Request): Promise<string> {
       }
     }
 
-    if (!sessionId) {
-      return "unknown"
+    if (sessionId) {
+      const sessionsFile = path.join(process.cwd(), "data", "sessions.json")
+      const data = await fs.readFile(sessionsFile, "utf-8")
+      const sessionsData = JSON.parse(data) as {
+        sessions: Array<{ sessionId: string; role: string }>
+      }
+
+      const session = sessionsData.sessions.find((s) => s.sessionId === sessionId)
+      if (session) {
+        return session.role
+      }
     }
 
-    const sessionsFile = path.join(process.cwd(), "data", "sessions.json")
-    const data = await fs.readFile(sessionsFile, "utf-8")
-    const sessionsData = JSON.parse(data) as {
-      sessions: Array<{ sessionId: string; role: string }>
+    // Fallback: check x-user-role header
+    const userRoleHeader = req.headers.get("x-user-role")
+    if (userRoleHeader) {
+      return userRoleHeader
     }
 
-    const session = sessionsData.sessions.find((s) => s.sessionId === sessionId)
-    return session?.role || "unknown"
+    return "unknown"
   } catch (error) {
     console.error("[CHAT-FINANCIAL API] Error getting user role:", error)
     return "unknown"
