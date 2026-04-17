@@ -1,16 +1,35 @@
 import { NextResponse } from "next/server"
-import fs from "fs/promises"
-import path from "path"
 
 const ADMIN_EMAIL = "admin@goldmansachs.com"
 const ADMIN_PASSWORD = "goldmansachs_admin"
 
-const USERS_FILE = path.join(process.cwd(), "data", "users.json")
-
-async function readUsers() {
-  const raw = await fs.readFile(USERS_FILE, "utf8")
-  return JSON.parse(raw)
-}
+// Mock users data for production compatibility
+const mockUsers = [
+  {
+    id: "1776087332479",
+    email: "pranav@goldmansachs.com",
+    password: "1234567",
+    role: "Sales",
+    name: "Pranav",
+    department: "Sales"
+  },
+  {
+    id: "1776079762829",
+    email: "shannu@goldmansachs.com",
+    password: "1234",
+    role: "Sales",
+    name: "Shanmuk",
+    department: "Sales"
+  },
+  {
+    id: "1776079746337",
+    email: "aswini@goldmansachs.com",
+    password: "1234",
+    role: "Financial",
+    name: "Aswini",
+    department: "Trading"
+  }
+]
 
 export async function POST(request: Request) {
   try {
@@ -21,8 +40,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, isAdmin: true })
     }
 
-    const data = await readUsers()
-    const user = (data.users || []).find((u: any) => u.email === email && u.password === password)
+    // Find user in mock data
+    const user = mockUsers.find((u: any) => u.email === email && u.password === password)
 
     if (user) {
       return NextResponse.json({
@@ -39,7 +58,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: false, message: "Invalid email or password" }, { status: 401 })
   } catch (err) {
-    console.error(err)
+    console.error("[AUTH LOGIN] Error:", err)
     return NextResponse.json({ success: false, message: "An error occurred" }, { status: 500 })
   }
 }
