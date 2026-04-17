@@ -83,7 +83,7 @@ export function ChatbotWidget() {
 
     const recognition = new SpeechRecognition()
     recognition.lang = "en-US"
-    recognition.interimResults = true
+    recognition.interimResults = false
     recognition.maxAlternatives = 1
     recognition.continuous = false
 
@@ -100,7 +100,7 @@ export function ChatbotWidget() {
         .trim()
 
       if (transcript) {
-        setInput((current) => `${current ? current + " " : ""}${transcript}`)
+        setInput((current) => current ? `${current} ${transcript}` : transcript)
       }
     }
 
