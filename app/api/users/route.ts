@@ -1,28 +1,12 @@
 import { NextResponse } from "next/server"
-import fs from "fs/promises"
-import path from "path"
-
-const USERS_FILE = path.join(process.cwd(), "data", "users.json")
-
-async function readUsers() {
-  try {
-    const raw = await fs.readFile(USERS_FILE, "utf8")
-    return JSON.parse(raw)
-  } catch (err) {
-    return { users: [] }
-  }
-}
-
-async function writeUsers(data: any) {
-  await fs.writeFile(USERS_FILE, JSON.stringify(data, null, 2), "utf8")
-}
+import { addUser, deleteUser, getAllUsers } from "@/lib/userStore"
 
 export async function GET() {
   try {
-    const data = await readUsers()
-    return NextResponse.json(data)
+    const users = await getAllUsers()
+    return NextResponse.json({ users })
   } catch (err) {
-    console.error(err)
+    console.error("[USERS API] Error:", err)
     return NextResponse.json({ users: [] })
   }
 }
@@ -36,39 +20,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Missing email or password" }, { status: 400 })
     }
 
-    const data = await readUsers()
-    const exists = (data.users || []).some((u: any) => u.email === email)
-    if (exists) {
-      return NextResponse.json({ success: false, message: "User already exists" }, { status: 409 })
-    }
-
-    const id = Date.now().toString()
-    const user = { id, email, password, role, name }
-    data.users = [user, ...(data.users || [])]
-    await writeUsers(data)
-
+    const user = await addUser({ email, password, role, name })
     return NextResponse.json({ success: true, user })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ success: false, message: "Could not add user" }, { status: 500 })
+  } catch (err: any) {
+    console.error("[USERS API] Error:", err)
+    const message = err?.message || "Could not add user"
+    const status = message === "User already exists" ? 409 : 500
+    return NextResponse.json({ success: false, message }, { status })
   }
 }
 
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json()
-    if (!id) return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 })
+    if (!id) {
+      return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 })
+    }
 
-    const data = await readUsers()
-    const before = (data.users || []).length
-    data.users = (data.users || []).filter((u: any) => u.id !== id)
-    if (data.users.length === before) {
+    const removed = await deleteUser(id)
+    if (!removed) {
       return NextResponse.json({ success: false, message: "User not found" }, { status: 404 })
     }
-    await writeUsers(data)
+
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error(err)
+    console.error("[USERS API] Error:", err)
     return NextResponse.json({ success: false, message: "Could not delete user" }, { status: 500 })
   }
 }

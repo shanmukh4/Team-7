@@ -1,47 +1,19 @@
 import { NextResponse } from "next/server"
+import { getAllUsers } from "@/lib/userStore"
 
 const ADMIN_EMAIL = "admin@goldmansachs.com"
 const ADMIN_PASSWORD = "goldmansachs_admin"
-
-// Mock users data for production compatibility
-const mockUsers = [
-  {
-    id: "1776087332479",
-    email: "pranav@goldmansachs.com",
-    password: "1234567",
-    role: "Sales",
-    name: "Pranav",
-    department: "Sales"
-  },
-  {
-    id: "1776079762829",
-    email: "shannu@goldmansachs.com",
-    password: "1234",
-    role: "Sales",
-    name: "Shanmuk",
-    department: "Sales"
-  },
-  {
-    id: "1776079746337",
-    email: "aswini@goldmansachs.com",
-    password: "1234",
-    role: "Financial",
-    name: "Aswini",
-    department: "Trading"
-  }
-]
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
 
-    // Hardcoded admin path
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       return NextResponse.json({ success: true, isAdmin: true })
     }
 
-    // Find user in mock data
-    const user = mockUsers.find((u: any) => u.email === email && u.password === password)
+    const users = await getAllUsers()
+    const user = users.find((u) => u.email === email && u.password === password)
 
     if (user) {
       return NextResponse.json({
@@ -51,7 +23,7 @@ export async function POST(request: Request) {
           name: user.name,
           email: user.email,
           role: user.role,
-          department: user.department,
+          department: user.department || (user.role === "Financial" ? "Trading" : "Sales"),
         },
       })
     }
