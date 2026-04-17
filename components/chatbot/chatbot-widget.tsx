@@ -35,11 +35,13 @@ export function ChatbotWidget() {
   const [currentAnomalyId, setCurrentAnomalyId] = useState<string | null>(null)
   const [isAnomalyMode, setIsAnomalyMode] = useState(false)
   const [error, setError] = useState<ErrorResponse | null>(null)
+  const [voiceError, setVoiceError] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
-  const [speechSupported, setSpeechSupported] = useState(false)
+  const [speechSupported, setSpeechSupported] = useState(true)
   const recognitionRef = useRef<any>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const { pendingAnomaly, setPendingAnomaly, onAnomalyResolved } = useChatbot()
   const pathname = usePathname()
 
@@ -75,14 +77,21 @@ export function ChatbotWidget() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
       setSpeechSupported(false)
+      setVoiceError("Voice input not supported")
       return
     }
 
     const recognition = new SpeechRecognition()
     recognition.lang = "en-US"
-    recognition.interimResults = false
+    recognition.interimResults = true
     recognition.maxAlternatives = 1
     recognition.continuous = false
+
+    recognition.onstart = () => {
+      setRecording(true)
+      setVoiceError(null)
+      inputRef.current?.focus()
+    }
 
     recognition.onresult = (event: any) => {
       const transcript = Array.from(event.results)
@@ -97,11 +106,18 @@ export function ChatbotWidget() {
 
     recognition.onend = () => {
       setRecording(false)
+      inputRef.current?.focus()
     }
 
     recognition.onerror = (event: any) => {
       console.error("[CHATBOT] Speech recognition error:", event)
+      if (event.error === "not-allowed" || event.error === "permission-denied") {
+        setVoiceError("Microphone permission denied")
+      } else {
+        setVoiceError("Voice input not supported")
+      }
       setRecording(false)
+      recognition.stop?.()
     }
 
     recognitionRef.current = recognition
@@ -109,14 +125,24 @@ export function ChatbotWidget() {
   }, [])
 
   const handleVoiceToggle = () => {
-    if (!speechSupported || !recognitionRef.current) return
+    if (!recognitionRef.current) {
+      setVoiceError("Voice input not supported")
+      return
+    }
 
     if (recording) {
       recognitionRef.current.stop()
       setRecording(false)
-    } else {
-      setRecording(true)
+      return
+    }
+
+    setVoiceError(null)
+    try {
       recognitionRef.current.start()
+    } catch (error) {
+      console.error("[CHATBOT] Speech recognition start error:", error)
+      setVoiceError("Voice input not supported")
+      setRecording(false)
     }
   }
 
@@ -529,31 +555,38 @@ Please provide a detailed analysis and solution recommendations. After analysis,
           </div>
 
           <form onSubmit={handleSubmit} className="p-4 border-t border-violet-900/30 bg-gradient-to-t from-slate-950 to-slate-900/50 backdrop-blur-sm">
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask a question or tap the mic to speak..."
-                disabled={isLoading}
-                className="flex-1 bg-slate-800/60 border-slate-700/50 text-white placeholder-slate-500 focus-visible:ring-violet-500 focus-visible:border-violet-500"
-              />
-              <Button
-                type="button"
-                onClick={handleVoiceToggle}
-                disabled={!speechSupported || isLoading}
-                size="icon"
-                variant="outline"
-                className={`border-slate-700/50 text-white ${recording ? 'bg-violet-700/80' : 'bg-slate-800/60'} hover:bg-violet-600/70 shadow-lg shadow-violet-500/20 disabled:opacity-50`}
-              >
-                <Mic className={`w-4 h-4 ${recording ? 'text-emerald-200' : 'text-white'}`} />
-              </Button>
+            <div className="flex gap-2 items-end">
+              <div className="relative flex-1">
+                <Input
+                  id="chatbot-input"
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={recording ? "Listening..." : "Ask a question..."}
+                  disabled={isLoading}
+                  className="w-full pr-16 text-sm placeholder:text-sm bg-slate-800/60 border-slate-700/50 text-white placeholder-slate-500 focus-visible:ring-violet-500 focus-visible:border-violet-500"
+                />
+                <Button
+                  type="button"
+                  onClick={handleVoiceToggle}
+                  title={recording ? "Stop recording" : "Start voice input"}
+                  aria-label="Voice input"
+                  size="icon"
+                  className={`absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl border border-pink-500/30 text-white ${recording ? 'bg-pink-500/95 ring ring-pink-400/60 animate-pulse' : 'bg-gradient-to-br from-pink-600 to-violet-600'} hover:from-fuchsia-500 hover:to-violet-500 shadow-lg shadow-pink-500/20 disabled:opacity-50`}
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+                {voiceError && (
+                  <p className="mt-1 text-[11px] text-rose-300/90">{voiceError}</p>
+                )}
+              </div>
               <Button
                 type="submit"
                 disabled={isLoading || !input.trim()}
                 size="icon"
-                className="bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg shadow-violet-500/30 disabled:opacity-50"
+                className="h-10 w-10 min-w-[2.5rem] rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg shadow-violet-500/30 disabled:opacity-50"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
               </Button>
             </div>
           </form>
