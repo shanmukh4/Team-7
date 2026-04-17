@@ -35,7 +35,6 @@ export function ChatbotWidget() {
   const [currentAnomalyId, setCurrentAnomalyId] = useState<string | null>(null)
   const [isAnomalyMode, setIsAnomalyMode] = useState(false)
   const [error, setError] = useState<ErrorResponse | null>(null)
-  const [voiceError, setVoiceError] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
@@ -105,7 +104,6 @@ export function ChatbotWidget() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
       setSpeechSupported(false)
-      setVoiceError("Voice input not supported")
       return
     }
 
@@ -155,19 +153,6 @@ export function ChatbotWidget() {
 
     recognition.onerror = (event: any) => {
       console.error("[CHATBOT] Speech recognition error:", event)
-      if (event.error === "not-allowed" || event.error === "permission-denied") {
-        setVoiceError("Microphone permission denied")
-      } else if (event.error === "language-not-supported") {
-        // Fallback to en-US if en-IN is not supported
-        if (speechLanguage === 'en-IN') {
-          console.log("[CHATBOT] en-IN not supported, falling back to en-US")
-          setSpeechLanguage('en-US')
-          return
-        }
-        setVoiceError("Voice input not supported")
-      } else {
-        setVoiceError("Voice input not supported")
-      }
       setRecording(false)
       recognition.stop?.()
     }
@@ -607,25 +592,24 @@ Please provide a detailed analysis and solution recommendations. After analysis,
           </div>
 
           {/* Language Selector */}
-          <div className="px-4 py-2 border-t border-violet-900/20 bg-gradient-to-r from-violet-900/5 to-transparent">
-            <div className="flex items-center gap-2 text-xs">
-              <Globe className="w-3 h-3 text-violet-400" />
-              <span className="text-violet-300/70">Voice Language:</span>
+          <div className="px-4 py-1 border-t border-violet-900/20 bg-gradient-to-r from-violet-900/5 to-transparent">
+            <div className="flex items-center justify-center gap-1 text-[10px]">
+              <Globe className="w-3 h-3 text-violet-400/70" />
               <select
                 value={speechLanguage}
                 onChange={(e) => setSpeechLanguage(e.target.value as 'en-IN' | 'en-US')}
-                className="bg-slate-800/60 border border-slate-700/50 text-violet-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                className="bg-transparent border-none text-violet-300/70 text-[10px] cursor-pointer focus:outline-none focus:ring-0 hover:text-violet-200"
                 disabled={recording}
               >
-                <option value="en-IN">English (India)</option>
-                <option value="en-US">English (US)</option>
+                <option value="en-IN">IN</option>
+                <option value="en-US">US</option>
               </select>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="p-4 border-t border-violet-900/30 bg-gradient-to-t from-slate-950 to-slate-900/50 backdrop-blur-sm">
             <div className="flex gap-2 items-end">
-              <div className="relative flex-1">
+              <div className="flex-1">
                 <Input
                   id="chatbot-input"
                   ref={inputRef}
@@ -633,22 +617,19 @@ Please provide a detailed analysis and solution recommendations. After analysis,
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={recording ? "Listening..." : "Ask a question..."}
                   disabled={isLoading}
-                  className="w-full pr-16 text-sm placeholder:text-sm bg-slate-800/60 border-slate-700/50 text-white placeholder-slate-500 focus-visible:ring-violet-500 focus-visible:border-violet-500"
+                  className="w-full text-sm placeholder:text-sm bg-slate-800/60 border-slate-700/50 text-white placeholder-slate-500 focus-visible:ring-violet-500 focus-visible:border-violet-500"
                 />
-                <Button
-                  type="button"
-                  onClick={handleVoiceToggle}
-                  title={recording ? "Stop recording" : "Start voice input"}
-                  aria-label="Voice input"
-                  size="icon"
-                  className={`absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl border border-pink-500/30 text-white ${recording ? 'bg-pink-500/95 ring ring-pink-400/60 animate-pulse' : 'bg-gradient-to-br from-pink-600 to-violet-600'} hover:from-fuchsia-500 hover:to-violet-500 shadow-lg shadow-pink-500/20 disabled:opacity-50`}
-                >
-                  <Mic className="w-4 h-4" />
-                </Button>
-                {voiceError && (
-                  <p className="mt-1 text-[11px] text-rose-300/90">{voiceError}</p>
-                )}
               </div>
+              <Button
+                type="button"
+                onClick={handleVoiceToggle}
+                title={recording ? "Stop recording" : "Start voice input"}
+                aria-label="Voice input"
+                size="icon"
+                className={`h-10 w-10 min-w-[2.5rem] rounded-xl border border-pink-500/30 text-white ${recording ? 'bg-pink-500/95 ring ring-pink-400/60 animate-pulse' : 'bg-gradient-to-br from-pink-600 to-violet-600'} hover:from-fuchsia-500 hover:to-violet-500 shadow-lg shadow-pink-500/20 disabled:opacity-50`}
+              >
+                <Mic className="w-4 h-4" />
+              </Button>
               <Button
                 type="submit"
                 disabled={isLoading || !input.trim()}
