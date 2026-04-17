@@ -4,6 +4,9 @@ import React, { useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 
+const ADMIN_EMAIL = "admin@goldmansachs.com"
+const ADMIN_PASSWORD = "admin123"
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
@@ -19,7 +22,6 @@ export default function LoginPage() {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
@@ -31,11 +33,63 @@ export default function LoginPage() {
         return
       }
 
-      const role = String(data.session?.role || '').toLowerCase()
-      if (role === 'admin') {
+      if (data.isAdmin) {
+        try {
+          localStorage.setItem('gs_session_id', 'valid_admin_session')
+          localStorage.setItem('gs_user', JSON.stringify({
+            email,
+            role: 'admin',
+            name: 'Admin',
+          }))
+          localStorage.setItem('isAuthenticated', 'true')
+        } catch (e) {
+          // ignore if storage not available
+        }
+
         router.push('/dashboard/admin')
-      } else if (role.includes('financial')) {
+        return
+      }
+
+      // Create server-side session for non-admin users
+      const sessionRes = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          email,
+          role: data.user?.role,
+          name: data.user?.name,
+        }),
+      })
+
+      const sessionData = await sessionRes.json()
+      if (!sessionData.success) {
+        setError('Failed to create session')
+        setLoading(false)
+        return
+      }
+
+      // Store session ID in localStorage for client-side retrieval
+      try {
+        localStorage.setItem('gs_session_id', sessionData.sessionId)
+        localStorage.setItem('gs_user', JSON.stringify({
+          email,
+          role: data.user?.role,
+          name: data.user?.name,
+        }))
+        localStorage.setItem('isAuthenticated', 'true')
+      } catch (e) {
+        // ignore if storage not available
+      }
+
+      const role = (data.user?.role || '').toLowerCase()
+
+      if (role.includes('financial')) {
         router.push('/dashboard/financial')
+      } else if (role.includes('sales')) {
+        // Sales users should land on the main dashboard (which links to client pages)
+        // The project's Sales client pages live under /dashboard/client/[id]
+        router.push('/dashboard')
       } else {
         router.push('/dashboard')
       }
@@ -45,7 +99,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
-
   }
 
   return (
