@@ -23,6 +23,7 @@ const initialAnomalies: Anomaly[] = [
     title: "Equity Derivatives Variance",
     reportedPnL: 15.2,
     expectedPnL: 12.8,
+    rootCause: "Pricing model mismatch on delta hedges",
     status: "open"
   },
   {
@@ -30,6 +31,71 @@ const initialAnomalies: Anomaly[] = [
     title: "FX Trading Desk Discrepancy",
     reportedPnL: 8.7,
     expectedPnL: 9.1,
+    rootCause: "Unbooked swap revaluation",
+    status: "open"
+  },
+  {
+    id: "3",
+    title: "Fixed Income Spread Error",
+    reportedPnL: 12.9,
+    expectedPnL: 10.4,
+    rootCause: "Incorrect spread curve interpolation",
+    status: "open"
+  },
+  {
+    id: "4",
+    title: "Credit Default Swap Drift",
+    reportedPnL: 7.3,
+    expectedPnL: 4.9,
+    rootCause: "Counterparty markup not applied consistently",
+    status: "open"
+  },
+  {
+    id: "5",
+    title: "Commodity Futures Reconciliation",
+    reportedPnL: 5.8,
+    expectedPnL: 3.6,
+    rootCause: "Expired contract volumes still included",
+    status: "open"
+  },
+  {
+    id: "6",
+    title: "Interest Rate Swap Mismatch",
+    reportedPnL: 11.1,
+    expectedPnL: 9.7,
+    rootCause: "Overnight rate feed lag in valuation engine",
+    status: "open"
+  },
+  {
+    id: "7",
+    title: "Emerging Markets FX Glitch",
+    reportedPnL: 9.4,
+    expectedPnL: 7.2,
+    rootCause: "Stale liquidity provider quotes",
+    status: "open"
+  },
+  {
+    id: "8",
+    title: "Structured Product Mispricing",
+    reportedPnL: 18.2,
+    expectedPnL: 14.9,
+    rootCause: "Option vol surface inconsistency",
+    status: "open"
+  },
+  {
+    id: "9",
+    title: "Municipal Bond Yield Error",
+    reportedPnL: 4.5,
+    expectedPnL: 2.3,
+    rootCause: "Incorrect tax-adjusted yield convention",
+    status: "open"
+  },
+  {
+    id: "10",
+    title: "Corporate Credit Spread Drift",
+    reportedPnL: 13.6,
+    expectedPnL: 11.0,
+    rootCause: "Spread curve calibration failure",
     status: "open"
   }
 ]
