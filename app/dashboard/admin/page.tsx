@@ -1,6 +1,29 @@
-import Link from 'next/link'
+"use client"
+
+import { useRouter } from 'next/navigation'
 
 export default function AdminDashboardPage() {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (error) {
+      console.error('[ADMIN DASHBOARD] Logout failed:', error)
+    }
+
+    if (typeof window !== 'undefined') {
+      document.cookie = 'gs_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
+      document.cookie = 'gs_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
+      document.cookie = 'gs_email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;'
+      localStorage.removeItem('gs_session_id')
+      localStorage.removeItem('gs_user')
+      localStorage.removeItem('isAuthenticated')
+    }
+
+    router.replace('/')
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-8 lg:p-10">
       <div className="max-w-5xl mx-auto space-y-8">
@@ -29,12 +52,12 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/admin" className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow hover:bg-primary/90">
-              Open Admin Control Panel
-            </Link>
-            <Link href="/dashboard" className="inline-flex items-center justify-center rounded-full border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground shadow hover:border-gray-300">
+            <button onClick={handleLogout} className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow hover:bg-primary/90">
+              Back to Login
+            </button>
+            <button onClick={() => router.push('/dashboard')} className="inline-flex items-center justify-center rounded-full border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground shadow hover:border-gray-300">
               Return to dashboard overview
-            </Link>
+            </button>
           </div>
         </div>
       </div>
