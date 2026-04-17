@@ -53,11 +53,10 @@ export default function AnomaliesPage() {
           return
         }
 
-        const res = await fetch(`/api/sessions?sessionId=${sessionId}`)
-        const data = await res.json()
-
-        if (data.success && data.session) {
-          setUserRole(data.session.role)
+        const userStr = localStorage.getItem('gs_user')
+        if (userStr) {
+          const user = JSON.parse(userStr)
+          setUserRole(user.role)
         } else {
           setUserRole("unknown")
         }

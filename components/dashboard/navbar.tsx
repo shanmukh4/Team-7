@@ -29,24 +29,19 @@ export function Navbar() {
   const [userRole, setUserRole] = useState("")
 
   useEffect(() => {
-    const fetchUserSession = async () => {
+    const fetchUserSession = () => {
       try {
-        const sessionId = localStorage.getItem("gs_session_id")
-        if (!sessionId) {
-          console.log("[NAVBAR] No session ID found")
-          return
-        }
-
-        const res = await fetch(`/api/sessions?sessionId=${sessionId}`)
-        const data = await res.json()
-        
-        if (data.success && data.session) {
-          setUserEmail(data.session.email)
-          setUserRole(data.session.role)
-          console.log("[NAVBAR] User session loaded:", data.session.email)
+        const userStr = localStorage.getItem('gs_user')
+        if (userStr) {
+          const user = JSON.parse(userStr)
+          setUserEmail(user.email)
+          setUserRole(user.role)
+          console.log("[NAVBAR] User session loaded:", user.email)
+        } else {
+          console.log("[NAVBAR] No user data found")
         }
       } catch (error) {
-        console.error("[NAVBAR] Failed to fetch session:", error)
+        console.error("[NAVBAR] Failed to load user data:", error)
       }
     }
 
@@ -84,14 +79,16 @@ export function Navbar() {
         await fetch('/api/sessions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'delete', sessionId }),
+          body: JSON.stringify({ action: 'destroy' }),
         })
       }
     } catch (error) {
-      console.error("[NAVBAR] Failed to delete session:", error)
+      console.error("[NAVBAR] Failed to destroy session:", error)
     }
     
     localStorage.removeItem("gs_session_id")
+    localStorage.removeItem("gs_user")
+    localStorage.removeItem("isAuthenticated")
     router.push("/")
   }
 

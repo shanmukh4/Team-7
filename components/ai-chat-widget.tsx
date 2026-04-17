@@ -57,27 +57,22 @@ export function AIChatWidget({ deskId, deskName, initialContext, anomalyData, on
 
   // Get user role from session API on mount
   useEffect(() => {
-    const fetchUserSession = async () => {
+    const fetchUserRole = () => {
       try {
-        const sessionId = localStorage.getItem("gs_session_id")
-        if (!sessionId) {
-          console.log("[AI-CHAT] No session ID found")
-          return
-        }
-
-        const res = await fetch(`/api/sessions?sessionId=${sessionId}`)
-        const data = await res.json()
-
-        if (data.success && data.session) {
-          setUserRole(data.session.role)
-          console.log("[AI-CHAT] User role from session:", data.session.role)
+        const userStr = localStorage.getItem('gs_user')
+        if (userStr) {
+          const user = JSON.parse(userStr)
+          setUserRole(user.role)
+          console.log("[AI-CHAT] User role from storage:", user.role)
+        } else {
+          console.log("[AI-CHAT] No user data found")
         }
       } catch (error) {
-        console.error("[AI-CHAT] Failed to fetch session:", error)
+        console.error("[AI-CHAT] Failed to load user role:", error)
       }
     }
 
-    fetchUserSession()
+    fetchUserRole()
   }, [])
 
   useEffect(() => {

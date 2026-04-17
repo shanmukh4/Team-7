@@ -121,24 +121,19 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    const fetchUserSession = async () => {
+    const fetchUserSession = () => {
       try {
-        const sessionId = localStorage.getItem("gs_session_id")
-        if (!sessionId) {
-          console.log("[SALES DASHBOARD] No session ID found")
-          return
-        }
-
-        const res = await fetch(`/api/sessions?sessionId=${sessionId}`)
-        const data = await res.json()
-        
-        if (data.success && data.session) {
-          setUserName(data.session.name || data.session.email.split("@")[0])
-          setUserRole(data.session.role)
-          console.log("[SALES DASHBOARD] User session loaded:", data.session.name, "Role:", data.session.role)
+        const userStr = localStorage.getItem('gs_user')
+        if (userStr) {
+          const user = JSON.parse(userStr)
+          setUserName(user.name || user.email.split("@")[0])
+          setUserRole(user.role)
+          console.log("[SALES DASHBOARD] User session loaded:", user.name, "Role:", user.role)
+        } else {
+          console.log("[SALES DASHBOARD] No user data found")
         }
       } catch (error) {
-        console.error("[SALES DASHBOARD] Failed to fetch session:", error)
+        console.error("[SALES DASHBOARD] Failed to load user data:", error)
       }
     }
 

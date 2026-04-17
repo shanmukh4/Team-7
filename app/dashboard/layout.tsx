@@ -15,22 +15,17 @@ export default function DashboardLayout({
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const checkSession = async () => {
+    const checkSession = () => {
       try {
         const sessionId = localStorage.getItem("gs_session_id")
-        if (!sessionId) {
+        const isAuth = localStorage.getItem("isAuthenticated") === 'true'
+        
+        if (!sessionId || !isAuth) {
           router.push("/")
           return
         }
 
-        const res = await fetch(`/api/sessions?sessionId=${sessionId}`)
-        const data = await res.json()
-        
-        if (data.success && data.session) {
-          setIsAuthenticated(true)
-        } else {
-          router.push("/")
-        }
+        setIsAuthenticated(true)
       } catch (error) {
         console.error("[DASHBOARD LAYOUT] Failed to check session:", error)
         router.push("/")

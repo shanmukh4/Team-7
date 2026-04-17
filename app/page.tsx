@@ -61,6 +61,12 @@ export default function LoginPage() {
       // Store session ID in localStorage for client-side retrieval
       try {
         localStorage.setItem('gs_session_id', sessionData.sessionId)
+        localStorage.setItem('gs_user', JSON.stringify({
+          email,
+          role: data.user?.role,
+          name: data.user?.name,
+        }))
+        localStorage.setItem('isAuthenticated', 'true')
       } catch (e) {
         // ignore if storage not available
       }
