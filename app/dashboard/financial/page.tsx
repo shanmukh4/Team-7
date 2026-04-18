@@ -703,7 +703,7 @@ export default function FinancialDashboardPage() {
                       <TableCell className="text-slate-700 dark:text-slate-300">{desk.type}</TableCell>
                       <TableCell className="text-slate-900 dark:text-slate-100">${desk.pnl_reported.toFixed(1)}M</TableCell>
                       <TableCell className="text-slate-900 dark:text-slate-100">${desk.pnl_expected.toFixed(1)}M</TableCell>
-                      <TableCell className={`font-semibold ${desk.variance > 0 ? 'text-red-600 dark:text-red-400' : desk.variance < 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
+                      <TableCell className={`font-semibold ${desk.status === 'Anomaly' ? 'text-red-600 dark:text-red-400' : desk.status === 'Reconciled' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                         ${desk.variance.toFixed(1)}M
                       </TableCell>
                       <TableCell>
