@@ -1,12 +1,12 @@
 {
-  "name": "team-7",
-  "version": "1.0.0",
+  "name": "my-project",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.61",
