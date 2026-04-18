@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import tradingDesksData from "@/data/trading_desks.json"
+import { isAnomalyResolved } from "@/app/api/resolve-anomaly/route"
 
 export async function GET() {
   try {
@@ -7,7 +8,7 @@ export async function GET() {
 
     // Filter trading desks for anomalies
     for (const desk of tradingDesksData.tradingDesks) {
-      if (desk.status === "Anomaly") {
+      if (desk.status === "Anomaly" && !isAnomalyResolved(desk.desk_id)) {
         const anomaly = {
           desk_id: desk.desk_id,
           desk_name: desk.desk_name,
