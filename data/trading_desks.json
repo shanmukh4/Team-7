@@ -30,7 +30,7 @@
       "status": "Anomaly",
       "pnl_reported": 24.5,
       "pnl_expected": 23,
-      "variance": -1.5,
+      "variance": 1.5,
       "last_updated": "2026-04-18T12:04:39.390Z"
     },
     {
