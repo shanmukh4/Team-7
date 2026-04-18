@@ -5,136 +5,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertTriangle, CheckCircle, Clock, XCircle, Lock } from "lucide-react"
+import { AlertTriangle, CheckCircle, Clock, XCircle, Lock, RotateCcw } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { AnomalyStore, StoredAnomaly } from "@/lib/anomaly-store"
 
-interface Anomaly {
-  id: string
-  desk_id: string
-  title: string
-  reportedPnL: number
-  expectedPnL: number
-  rootCause?: string
-  status: "open" | "resolving" | "resolved"
-  variance: number
-}
-
-const initialAnomalies: Anomaly[] = [
-  {
-    id: "1",
-    title: "Equity Derivatives Variance",
-    reportedPnL: 15.2,
-    expectedPnL: 12.8,
-    rootCause: "Pricing model mismatch on delta hedges",
-    status: "open"
-  },
-  {
-    id: "2",
-    title: "FX Trading Desk Discrepancy",
-    reportedPnL: 8.7,
-    expectedPnL: 9.1,
-    rootCause: "Unbooked swap revaluation",
-    status: "open"
-  },
-  {
-    id: "3",
-    title: "Fixed Income Spread Error",
-    reportedPnL: 12.9,
-    expectedPnL: 10.4,
-    rootCause: "Incorrect spread curve interpolation",
-    status: "open"
-  },
-  {
-    id: "4",
-    title: "Credit Default Swap Drift",
-    reportedPnL: 7.3,
-    expectedPnL: 4.9,
-    rootCause: "Counterparty markup not applied consistently",
-    status: "open"
-  },
-  {
-    id: "5",
-    title: "Commodity Futures Reconciliation",
-    reportedPnL: 5.8,
-    expectedPnL: 3.6,
-    rootCause: "Expired contract volumes still included",
-    status: "open"
-  },
-  {
-    id: "6",
-    title: "Interest Rate Swap Mismatch",
-    reportedPnL: 11.1,
-    expectedPnL: 9.7,
-    rootCause: "Overnight rate feed lag in valuation engine",
-    status: "open"
-  },
-  {
-    id: "7",
-    title: "Emerging Markets FX Glitch",
-    reportedPnL: 9.4,
-    expectedPnL: 7.2,
-    rootCause: "Stale liquidity provider quotes",
-    status: "open"
-  },
-  {
-    id: "8",
-    title: "Structured Product Mispricing",
-    reportedPnL: 18.2,
-    expectedPnL: 14.9,
-    rootCause: "Option vol surface inconsistency",
-    status: "open"
-  },
-  {
-    id: "9",
-    title: "Municipal Bond Yield Error",
-    reportedPnL: 4.5,
-    expectedPnL: 2.3,
-    rootCause: "Incorrect tax-adjusted yield convention",
-    status: "open"
-  },
-  {
-    id: "10",
-    title: "Corporate Credit Spread Drift",
-    reportedPnL: 13.6,
-    expectedPnL: 11.0,
-    rootCause: "Spread curve calibration failure",
-    status: "open"
-  }
-]
+const initialAnomalies: StoredAnomaly[] = []
 
 export default function AnomaliesPage() {
-  const [anomalies, setAnomalies] = useState<Anomaly[]>(initialAnomalies)
+  const [anomalies, setAnomalies] = useState<StoredAnomaly[]>([])
   const [resolvingId, setResolvingId] = useState<string | null>(null)
   const [resolvingStep, setResolvingStep] = useState<string>("")
   const [userRole, setUserRole] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isResolving, setIsResolving] = useState(false)
   const { toast } = useToast()
 
-  // Fetch anomalies from API
-  const fetchAnomalies = async () => {
-    try {
-      const response = await fetch('/api/anomalies')
-      const data = await response.json()
-      if (data.anomalies && Array.isArray(data.anomalies)) {
-        const mapped = data.anomalies.map((a: any) => ({
-          id: a.desk_id,
-          desk_id: a.desk_id,
-          title: a.desk_name || a.issue,
-          reportedPnL: a.reported_pnl,
-          expectedPnL: a.expected_pnl,
-          variance: a.variance,
-          rootCause: a.root_causes?.[0] || 'Unknown',
-          status: 'open' as const
-        }))
-        setAnomalies(mapped)
-      }
-    } catch (error) {
-      console.error('[ANOMALIES] Failed to fetch anomalies:', error)
-      // Fall back to initial data if API fails
-      setAnomalies(initialAnomalies)
-    }
-  }
+  // Initialize store and load anomalies on mount
+  useEffect(() => {
+    // Initialize the anomaly store (seeds with initial 9 if first load)
+    AnomalyStore.init()
+
+    // Load active anomalies from store
+    const active = AnomalyStore.getActiveAnomalies()
+    setAnomalies(active)
+
+    console.log('[ANOMALIES] Loaded from store:', active.length, 'active anomalies')
+  }, [])
 
   // Check user role on mount
   useEffect(() => {
@@ -164,13 +59,6 @@ export default function AnomaliesPage() {
 
     checkUserRole()
   }, [])
-
-  // Fetch anomalies on mount
-  useEffect(() => {
-    if (!isLoading) {
-      fetchAnomalies()
-    }
-  }, [isLoading])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -203,8 +91,6 @@ export default function AnomaliesPage() {
     if (!anomaly) return
 
     setResolvingId(id)
-    setIsResolving(true)
-    setAnomalies(prev => prev.map(a => a.id === id ? { ...a, status: "resolving" } : a))
 
     const steps = [
       "Analyzing root cause...",
@@ -230,7 +116,10 @@ export default function AnomaliesPage() {
         throw new Error('Failed to resolve anomaly')
       }
 
-      // Instantly remove the anomaly from the UI (optimistic update)
+      // Mark as resolved in persistent store
+      AnomalyStore.markResolved(anomaly.desk_id)
+
+      // Remove from UI
       setAnomalies(prev => prev.filter(a => a.id !== id))
 
       // Show success message
@@ -240,12 +129,9 @@ export default function AnomaliesPage() {
         duration: 3000,
       })
 
-      // Refresh anomalies data from backend to ensure consistency
-      await fetchAnomalies()
+      console.log('[ANOMALIES] Resolved anomaly:', anomaly.desk_id, '- Now', AnomalyStore.getActiveCount(), 'active')
     } catch (error) {
       console.error('[ANOMALIES] Failed to resolve anomaly:', error)
-      // Revert the status change if API call failed
-      setAnomalies(prev => prev.map(a => a.id === id ? { ...a, status: "open" } : a))
       toast({
         title: "Resolution Failed",
         description: "Failed to resolve the anomaly. Please try again.",
@@ -255,12 +141,10 @@ export default function AnomaliesPage() {
     } finally {
       setResolvingId(null)
       setResolvingStep("")
-      setIsResolving(false)
     }
   }
 
-  const handleManualResolve = async (anomaly: Anomaly) => {
-    setIsResolving(true)
+  const handleManualResolve = async (anomaly: StoredAnomaly) => {
     try {
       // Call the backend API to resolve the anomaly
       const response = await fetch('/api/resolve-anomaly', {
@@ -273,7 +157,10 @@ export default function AnomaliesPage() {
         throw new Error('Failed to resolve anomaly')
       }
 
-      // Instantly remove the anomaly from the UI (optimistic update)
+      // Mark as resolved in persistent store
+      AnomalyStore.markResolved(anomaly.desk_id)
+
+      // Remove from UI
       setAnomalies(prev => prev.filter(a => a.id !== anomaly.id))
       
       toast({
@@ -282,8 +169,7 @@ export default function AnomaliesPage() {
         duration: 3000,
       })
 
-      // Refresh anomalies data from backend to ensure consistency
-      await fetchAnomalies()
+      console.log('[ANOMALIES] Resolved anomaly:', anomaly.desk_id, '- Now', AnomalyStore.getActiveCount(), 'active')
     } catch (error) {
       console.error('[ANOMALIES] Failed to resolve anomaly:', error)
       toast({
@@ -292,12 +178,21 @@ export default function AnomaliesPage() {
         variant: "destructive",
         duration: 3000,
       })
-    } finally {
-      setIsResolving(false)
     }
   }
 
-  const activeAnomalies = anomalies.filter(a => a.status !== "resolved")
+  const handleReset = () => {
+    AnomalyStore.reset()
+    setAnomalies(AnomalyStore.getActiveAnomalies())
+    toast({
+      title: "Anomalies Reset",
+      description: "All anomalies have been reset to the initial 9.",
+      duration: 3000,
+    })
+  }
+
+  const activeAnomalies = anomalies
+  const resolvedCount = AnomalyStore.getResolvedCount()
 
   // Check if user has access to anomalies
   const hasAccess = userRole?.toLowerCase() !== "sales"
@@ -343,15 +238,51 @@ export default function AnomaliesPage() {
                 Monitor and resolve P&L anomalies across trading desks. {activeAnomalies.length} active anomal{activeAnomalies.length !== 1 ? 'ies' : 'y'} detected.
               </p>
             </div>
+            <Button
+              onClick={handleReset}
+              variant="outline"
+              className="gap-2 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Reset Anomalies
+            </Button>
           </div>
 
-          {/* Anomaly Count */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6 text-red-500" />
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{activeAnomalies.length}</span>
-              <span className="text-sm text-slate-600 dark:text-slate-400">Active Anomal{activeAnomalies.length !== 1 ? 'ies' : 'y'}</span>
-            </div>
+          {/* Anomaly Count Stats */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="border-red-500/30 bg-red-500/5">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Active</p>
+                    <p className="text-3xl font-bold text-red-500">{activeAnomalies.length}</p>
+                  </div>
+                  <AlertTriangle className="w-8 h-8 text-red-500" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-green-500/30 bg-green-500/5">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Resolved</p>
+                    <p className="text-3xl font-bold text-green-500">{resolvedCount}</p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-violet-500/30 bg-violet-500/5">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Total</p>
+                    <p className="text-3xl font-bold text-violet-500">{activeAnomalies.length + resolvedCount}</p>
+                  </div>
+                  <AlertTriangle className="w-8 h-8 text-violet-500" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </section>
 
