@@ -7,28 +7,29 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AlertTriangle, CheckCircle, Clock, XCircle, Lock, RotateCcw } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { AnomalyStore, StoredAnomaly } from "@/lib/anomaly-store"
 
-const initialAnomalies: StoredAnomaly[] = []
+interface Anomaly {
+  desk_id: string
+  desk_name: string
+  issue: string
+  reported_pnl: number
+  expected_pnl: number
+  variance: number
+  root_causes: string[]
+  severity: string
+}
 
 export default function AnomaliesPage() {
-  const [anomalies, setAnomalies] = useState<StoredAnomaly[]>([])
+  const [anomalies, setAnomalies] = useState<Anomaly[]>([])
   const [resolvingId, setResolvingId] = useState<string | null>(null)
   const [resolvingStep, setResolvingStep] = useState<string>("")
   const [userRole, setUserRole] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
-  // Initialize store and load anomalies on mount
+  // Load anomalies from API on mount
   useEffect(() => {
-    // Initialize the anomaly store (seeds with initial 9 if first load)
-    AnomalyStore.init()
-
-    // Load active anomalies from store
-    const active = AnomalyStore.getActiveAnomalies()
-    setAnomalies(active)
-
-    console.log('[ANOMALIES] Loaded from store:', active.length, 'active anomalies')
+    fetchAnomalies()
   }, [])
 
   // Check user role on mount
@@ -60,6 +61,26 @@ export default function AnomaliesPage() {
     checkUserRole()
   }, [])
 
+  const fetchAnomalies = async () => {
+    try {
+      const response = await fetch('/api/anomalies')
+      if (!response.ok) {
+        throw new Error('Failed to fetch anomalies')
+      }
+      const data = await response.json()
+      setAnomalies(data.anomalies || [])
+      console.log('[ANOMALIES] Fetched anomalies:', data.anomalies?.length || 0)
+    } catch (error) {
+      console.error('[ANOMALIES] Error fetching anomalies:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load anomalies. Please refresh the page.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
+  }
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'open':
@@ -86,11 +107,8 @@ export default function AnomaliesPage() {
     }
   }
 
-  const handleAutoResolve = async (id: string) => {
-    const anomaly = anomalies.find(a => a.id === id)
-    if (!anomaly) return
-
-    setResolvingId(id)
+  const handleAutoResolve = async (deskId: string) => {
+    setResolvingId(deskId)
 
     const steps = [
       "Analyzing root cause...",
@@ -109,27 +127,24 @@ export default function AnomaliesPage() {
       const response = await fetch('/api/resolve-anomaly', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ desk_id: anomaly.desk_id })
+        body: JSON.stringify({ desk_id: deskId })
       })
 
       if (!response.ok) {
         throw new Error('Failed to resolve anomaly')
       }
 
-      // Mark as resolved in persistent store
-      AnomalyStore.markResolved(anomaly.desk_id)
-
-      // Remove from UI
-      setAnomalies(prev => prev.filter(a => a.id !== id))
+      // Refresh anomalies from API
+      await fetchAnomalies()
 
       // Show success message
       toast({
         title: "Anomaly Resolved",
-        description: "The anomaly has been successfully resolved and removed.",
+        description: "The anomaly has been successfully resolved.",
         duration: 3000,
       })
 
-      console.log('[ANOMALIES] Resolved anomaly:', anomaly.desk_id, '- Now', AnomalyStore.getActiveCount(), 'active')
+      console.log('[ANOMALIES] Resolved anomaly:', deskId)
     } catch (error) {
       console.error('[ANOMALIES] Failed to resolve anomaly:', error)
       toast({
@@ -144,7 +159,7 @@ export default function AnomaliesPage() {
     }
   }
 
-  const handleManualResolve = async (anomaly: StoredAnomaly) => {
+  const handleManualResolve = async (anomaly: Anomaly) => {
     try {
       // Call the backend API to resolve the anomaly
       const response = await fetch('/api/resolve-anomaly', {
@@ -157,19 +172,16 @@ export default function AnomaliesPage() {
         throw new Error('Failed to resolve anomaly')
       }
 
-      // Mark as resolved in persistent store
-      AnomalyStore.markResolved(anomaly.desk_id)
-
-      // Remove from UI
-      setAnomalies(prev => prev.filter(a => a.id !== anomaly.id))
+      // Refresh anomalies from API
+      await fetchAnomalies()
       
       toast({
         title: "Anomaly Resolved",
-        description: `"${anomaly.title}" has been manually resolved and removed.`,
+        description: `"${anomaly.desk_name}" has been manually resolved.`,
         duration: 3000,
       })
 
-      console.log('[ANOMALIES] Resolved anomaly:', anomaly.desk_id, '- Now', AnomalyStore.getActiveCount(), 'active')
+      console.log('[ANOMALIES] Resolved anomaly:', anomaly.desk_id)
     } catch (error) {
       console.error('[ANOMALIES] Failed to resolve anomaly:', error)
       toast({
@@ -181,18 +193,8 @@ export default function AnomaliesPage() {
     }
   }
 
-  const handleReset = () => {
-    AnomalyStore.reset()
-    setAnomalies(AnomalyStore.getActiveAnomalies())
-    toast({
-      title: "Anomalies Reset",
-      description: "All anomalies have been reset to the initial 9.",
-      duration: 3000,
-    })
-  }
-
   const activeAnomalies = anomalies
-  const resolvedCount = AnomalyStore.getResolvedCount()
+  const resolvedCount = 0 // This would need to be fetched from API if needed
 
   // Check if user has access to anomalies
   const hasAccess = userRole?.toLowerCase() !== "sales"
@@ -292,17 +294,16 @@ export default function AnomaliesPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {activeAnomalies.map((anomaly) => (
                 <Card
-                  key={anomaly.id}
+                  key={anomaly.desk_id}
                   className="border-red-500/30 bg-red-500/5 dark:bg-red-500/5 hover:bg-red-500/10 dark:hover:bg-red-500/10 cursor-pointer transition-colors border border-red-300 dark:border-red-500/30"
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-slate-900 dark:text-white">{anomaly.title}</h3>
+                        <h3 className="font-semibold text-slate-900 dark:text-white">{anomaly.desk_name}</h3>
                         <div className="flex items-center gap-2">
-                          {getStatusIcon(anomaly.status)}
-                          <Badge className={`rounded-full px-2 py-1 text-xs ${getStatusColor(anomaly.status)}`}>
-                            {anomaly.status}
+                          <Badge className={`rounded-full px-2 py-1 text-xs bg-red-500/10 text-red-300`}>
+                            Anomaly
                           </Badge>
                         </div>
                       </div>
@@ -312,22 +313,27 @@ export default function AnomaliesPage() {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <p className="text-slate-600 dark:text-slate-400">Reported P&L</p>
-                          <p className="font-semibold text-slate-900 dark:text-white">${anomaly.reportedPnL.toFixed(1)}M</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">${anomaly.reported_pnl.toFixed(1)}M</p>
                         </div>
                         <div>
                           <p className="text-slate-600 dark:text-slate-400">Expected P&L</p>
-                          <p className="font-semibold text-green-600 dark:text-green-400">${anomaly.expectedPnL.toFixed(1)}M</p>
+                          <p className="font-semibold text-green-600 dark:text-green-400">${anomaly.expected_pnl.toFixed(1)}M</p>
                         </div>
+                      </div>
+
+                      <div className="text-sm">
+                        <p className="text-slate-600 dark:text-slate-400">Variance</p>
+                        <p className="font-semibold text-red-600 dark:text-red-400">${anomaly.variance.toFixed(1)}M</p>
                       </div>
 
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           className="flex-1"
-                          onClick={() => handleAutoResolve(anomaly.id)}
-                          disabled={resolvingId === anomaly.id}
+                          onClick={() => handleAutoResolve(anomaly.desk_id)}
+                          disabled={resolvingId === anomaly.desk_id}
                         >
-                          {resolvingId === anomaly.id ? "Resolving..." : "Auto Resolve"}
+                          {resolvingId === anomaly.desk_id ? "Resolving..." : "Auto Resolve"}
                         </Button>
                         <Button
                           size="sm"
@@ -339,7 +345,7 @@ export default function AnomaliesPage() {
                         </Button>
                       </div>
 
-                      {resolvingId === anomaly.id && (
+                      {resolvingId === anomaly.desk_id && (
                         <div className="text-sm text-yellow-600 dark:text-yellow-400">
                           {resolvingStep}
                         </div>
@@ -372,19 +378,18 @@ export default function AnomaliesPage() {
                 </TableHeader>
                 <TableBody>
                   {activeAnomalies.map((anomaly) => (
-                    <TableRow key={anomaly.id} className="border-slate-200 dark:border-slate-800">
-                      <TableCell className="font-mono text-slate-700 dark:text-slate-300">{anomaly.id}</TableCell>
-                      <TableCell className="text-slate-900 dark:text-slate-100 font-semibold">{anomaly.title}</TableCell>
-                      <TableCell className="text-slate-900 dark:text-slate-100">${anomaly.reportedPnL.toFixed(1)}M</TableCell>
-                      <TableCell className="text-slate-900 dark:text-slate-100">${anomaly.expectedPnL.toFixed(1)}M</TableCell>
-                      <TableCell className={`font-semibold ${anomaly.reportedPnL - anomaly.expectedPnL > 0 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
-                        ${(anomaly.reportedPnL - anomaly.expectedPnL).toFixed(1)}M
+                    <TableRow key={anomaly.desk_id} className="border-slate-200 dark:border-slate-800">
+                      <TableCell className="font-mono text-slate-700 dark:text-slate-300">{anomaly.desk_id}</TableCell>
+                      <TableCell className="text-slate-900 dark:text-slate-100 font-semibold">{anomaly.desk_name}</TableCell>
+                      <TableCell className="text-slate-900 dark:text-slate-100">${anomaly.reported_pnl.toFixed(1)}M</TableCell>
+                      <TableCell className="text-slate-900 dark:text-slate-100">${anomaly.expected_pnl.toFixed(1)}M</TableCell>
+                      <TableCell className={`font-semibold ${anomaly.variance > 0 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                        ${anomaly.variance.toFixed(1)}M
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {getStatusIcon(anomaly.status)}
-                          <Badge className={`rounded-full px-2 py-1 text-xs ${getStatusColor(anomaly.status)}`}>
-                            {anomaly.status}
+                          <Badge className={`rounded-full px-2 py-1 text-xs bg-red-500/10 text-red-300`}>
+                            Anomaly
                           </Badge>
                         </div>
                       </TableCell>
@@ -392,10 +397,10 @@ export default function AnomaliesPage() {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            onClick={() => handleAutoResolve(anomaly.id)}
-                            disabled={resolvingId === anomaly.id}
+                            onClick={() => handleAutoResolve(anomaly.desk_id)}
+                            disabled={resolvingId === anomaly.desk_id}
                           >
-                            {resolvingId === anomaly.id ? "Resolving..." : "Auto Resolve"}
+                            {resolvingId === anomaly.desk_id ? "Resolving..." : "Auto Resolve"}
                           </Button>
                           <Button
                             size="sm"
