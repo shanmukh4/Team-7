@@ -109,49 +109,15 @@ const INITIAL_ANOMALIES: StoredAnomaly[] = [
  */
 export class AnomalyStore {
   /**
-   * Initialize store - fetch real anomalies from API on first load, then use localStorage
+   * Initialize store - seed with initial anomalies on first load
    */
-  static async init(): Promise<void> {
+  static init(): void {
     if (typeof window === 'undefined') return
 
     // Check if we've already seeded
     const seeded = localStorage.getItem(INITIAL_ANOMALIES_KEY)
-    if (seeded) {
-      // Already initialized, skip
-      console.log('[ANOMALY_STORE] Already initialized, using stored data')
-      return
-    }
-
-    try {
-      // First time - fetch real anomalies from API
-      const response = await fetch('/api/anomalies')
-      const data = await response.json()
-      
-      let anomaliesToStore = INITIAL_ANOMALIES
-      
-      if (data.anomalies && Array.isArray(data.anomalies)) {
-        // Map API anomalies to StoredAnomaly format
-        anomaliesToStore = data.anomalies.map((a: any, idx: number) => ({
-          id: String(idx + 1),
-          desk_id: a.desk_id,
-          title: a.desk_name || a.issue,
-          reportedPnL: a.reported_pnl,
-          expectedPnL: a.expected_pnl,
-          variance: a.variance,
-          rootCause: a.root_causes?.[0] || 'Unknown'
-        }))
-        console.log('[ANOMALY_STORE] Fetched', anomaliesToStore.length, 'anomalies from API')
-      }
-
-      // Save to localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(anomaliesToStore))
-      localStorage.setItem(INITIAL_ANOMALIES_KEY, 'true')
-      localStorage.setItem(RESOLVED_KEY, JSON.stringify([]))
-      
-      console.log('[ANOMALY_STORE] Initialized with', anomaliesToStore.length, 'anomalies')
-    } catch (error) {
-      console.error('[ANOMALY_STORE] Error during initialization:', error)
-      // Fallback to seed anomalies
+    if (!seeded) {
+      // First time - save initial anomalies and mark as seeded
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_ANOMALIES))
       localStorage.setItem(INITIAL_ANOMALIES_KEY, 'true')
       localStorage.setItem(RESOLVED_KEY, JSON.stringify([]))

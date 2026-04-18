@@ -21,18 +21,14 @@ export default function AnomaliesPage() {
 
   // Initialize store and load anomalies on mount
   useEffect(() => {
-    const initializeStore = async () => {
-      // Initialize the anomaly store (fetches from API on first load, then uses localStorage)
-      await AnomalyStore.init()
+    // Initialize the anomaly store (seeds with initial 9 if first load)
+    AnomalyStore.init()
 
-      // Load active anomalies from store
-      const active = AnomalyStore.getActiveAnomalies()
-      setAnomalies(active)
+    // Load active anomalies from store
+    const active = AnomalyStore.getActiveAnomalies()
+    setAnomalies(active)
 
-      console.log('[ANOMALIES] Loaded from store:', active.length, 'active anomalies')
-    }
-
-    initializeStore()
+    console.log('[ANOMALIES] Loaded from store:', active.length, 'active anomalies')
   }, [])
 
   // Check user role on mount

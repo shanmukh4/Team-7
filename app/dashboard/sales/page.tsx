@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/components/ui/use-toast"
 import { AIChatWidget } from "@/components/ai-chat-widget"
-import { AnomalyStore, StoredAnomaly } from "@/lib/anomaly-store"
 
 interface TradingDesk {
   desk_id: string
@@ -23,6 +22,17 @@ interface TradingDesk {
   last_updated: string
 }
 
+interface Anomaly {
+  desk_id: string
+  desk_name: string
+  issue: string
+  reported_pnl: number
+  expected_pnl: number
+  variance: number
+  root_causes: string[]
+  severity: string
+}
+
 interface Summary {
   totalDesks: number
   reconciled: number
@@ -33,24 +43,15 @@ interface Summary {
 export default function SalesDashboardPage() {
   const [tradingDesks, setTradingDesks] = useState<TradingDesk[]>([])
   const [summary, setSummary] = useState<Summary>({ totalDesks: 0, reconciled: 0, pending: 0, anomalies: 0 })
-  const [anomalies, setAnomalies] = useState<StoredAnomaly[]>([])
-  const [selectedAnomaly, setSelectedAnomaly] = useState<StoredAnomaly | null>(null)
+  const [anomalies, setAnomalies] = useState<Anomaly[]>([])
+  const [selectedAnomaly, setSelectedAnomaly] = useState<Anomaly | null>(null)
   const [isResolving, setIsResolving] = useState(false)
   const [resolutionResult, setResolutionResult] = useState<any>(null)
   const { toast } = useToast()
 
   useEffect(() => {
-    const initialize = async () => {
-      // Initialize anomaly store (fetches real data on first load)
-      await AnomalyStore.init()
-      
-      // Load anomalies from store
-      const active = AnomalyStore.getActiveAnomalies()
-      setAnomalies(active)
-    }
-    
-    initialize()
     fetchTradingDesks()
+    fetchAnomalies()
   }, [])
 
   const fetchTradingDesks = async () => {
@@ -64,10 +65,14 @@ export default function SalesDashboardPage() {
     }
   }
 
-  const refreshAnomalies = () => {
-    const active = AnomalyStore.getActiveAnomalies()
-    setAnomalies(active)
-    console.log('[SALES] Refreshed anomalies:', active.length)
+  const fetchAnomalies = async () => {
+    try {
+      const response = await fetch('/api/anomalies')
+      const data = await response.json()
+      setAnomalies(data.anomalies)
+    } catch (error) {
+      console.error('Failed to fetch anomalies:', error)
+    }
   }
 
   const resolveAnomaly = async (deskId: string) => {
@@ -80,15 +85,9 @@ export default function SalesDashboardPage() {
       })
       const result = await response.json()
       setResolutionResult(result)
-      
-      // Mark as resolved in anomaly store
-      AnomalyStore.markResolved(deskId)
-      
-      // Refresh anomalies from store
-      refreshAnomalies()
-      
-      // Refresh trading desks
+      // Refresh data
       await fetchTradingDesks()
+      await fetchAnomalies()
 
       // Show success toast
       toast({
