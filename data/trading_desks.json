@@ -7,8 +7,8 @@
       "type": "Equities",
       "status": "Anomaly",
       "pnl_reported": 58.5,
-      "pnl_expected": 52.5,
-      "variance": 6.0,
+      "pnl_expected": 55,
+      "variance": 3.5,
       "last_updated": "2026-04-18T10:19:12.578Z"
     },
     {
@@ -18,8 +18,8 @@
       "type": "FICC",
       "status": "Anomaly",
       "pnl_reported": 112.8,
-      "pnl_expected": 105.8,
-      "variance": 7.0,
+      "pnl_expected": 111.0,
+      "variance": 1.8,
       "last_updated": "2026-04-18T10:18:30.172Z"
     },
     {
@@ -29,8 +29,8 @@
       "type": "Commodities",
       "status": "Anomaly",
       "pnl_reported": 24.5,
-      "pnl_expected": 18.5,
-      "variance": 6.0,
+      "pnl_expected": 23,
+      "variance": -1.5,
       "last_updated": "2026-04-18T12:04:39.390Z"
     },
     {
@@ -40,9 +40,9 @@
       "type": "FX",
       "status": "Pending",
       "pnl_reported": 9.1,
-      "pnl_expected": 9.1,
-      "variance": 0,
-      "last_updated": "2026-04-15T12:04:25.047Z"
+      "pnl_expected": 14.3,
+      "variance": -5.2,
+      "last_update": "2026-04-15T12:04:25.047Z"
     },
     {
       "desk_id": "D005",
@@ -205,8 +205,8 @@
       "type": "Derivatives",
       "status": "Reconciled",
       "pnl_reported": 31.2,
-      "pnl_expected": 35,
-      "variance": -3.8,
+      "pnl_expected": 31.2,
+      "variance": 0,
       "last_updated": "2026-04-17T09:20:00.000Z"
     },
     {
@@ -216,8 +216,8 @@
       "type": "Options",
       "status": "Reconciled",
       "pnl_reported": 13.9,
-      "pnl_expected": 16.5,
-      "variance": -2.6,
+      "pnl_expected": 13.9,
+      "variance": 0,
       "last_updated": "2026-04-17T09:45:00.000Z"
     },
     {
@@ -227,8 +227,8 @@
       "type": "Commodities",
       "status": "Reconciled",
       "pnl_reported": 22.7,
-      "pnl_expected": 25.8,
-      "variance": -3.1,
+      "pnl_expected": 22.7,
+      "variance": 0,
       "last_updated": "2026-04-17T10:10:00.000Z"
     },
     {
@@ -238,8 +238,8 @@
       "type": "Equities",
       "status": "Reconciled",
       "pnl_reported": 18.4,
-      "pnl_expected": 21,
-      "variance": -2.6,
+      "pnl_expected": 18.4,
+      "variance": 0,
       "last_updated": "2026-04-17T10:35:00.000Z"
     },
     {
@@ -249,8 +249,8 @@
       "type": "Rates",
       "status": "Reconciled",
       "pnl_reported": 16.5,
-      "pnl_expected": 18.8,
-      "variance": -2.3,
+      "pnl_expected": 16.5,
+      "variance": 0,
       "last_updated": "2026-04-17T11:00:00.000Z"
     },
     {
@@ -260,8 +260,8 @@
       "type": "Structured",
       "status": "Reconciled",
       "pnl_reported": 12.3,
-      "pnl_expected": 14.8,
-      "variance": -2.5,
+      "pnl_expected": 12.3,
+      "variance": 0,
       "last_updated": "2026-04-17T11:25:00.000Z"
     },
     {
@@ -271,8 +271,8 @@
       "type": "Options",
       "status": "Reconciled",
       "pnl_reported": 27.9,
-      "pnl_expected": 30.5,
-      "variance": -2.6,
+      "pnl_expected": 27.9,
+      "variance": 0,
       "last_updated": "2026-04-17T11:50:00.000Z"
     },
     {
@@ -282,8 +282,8 @@
       "type": "Equities",
       "status": "Reconciled",
       "pnl_reported": 19.8,
-      "pnl_expected": 22.3,
-      "variance": -2.5,
+      "pnl_expected": 19.8,
+      "variance": 0,
       "last_updated": "2026-04-17T12:15:00.000Z"
     },
     {
@@ -293,8 +293,8 @@
       "type": "FICC",
       "status": "Reconciled",
       "pnl_reported": 24.3,
-      "pnl_expected": 27.1,
-      "variance": -2.8,
+      "pnl_expected": 24.3,
+      "variance": 0,
       "last_updated": "2026-04-17T12:40:00.000Z"
     },
     {
@@ -304,8 +304,8 @@
       "type": "Credit",
       "status": "Reconciled",
       "pnl_reported": 21.6,
-      "pnl_expected": 24.4,
-      "variance": -2.8,
+      "pnl_expected": 21.6,
+      "variance": 0,
       "last_updated": "2026-04-17T13:05:00.000Z"
     }
   ],
