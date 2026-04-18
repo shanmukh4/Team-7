@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/components/ui/use-toast"
 import { AIChatWidget } from "@/components/ai-chat-widget"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { AnomalyStore, StoredAnomaly } from "@/lib/anomaly-store"
 
 interface TradingDesk {
   desk_id: string
@@ -25,17 +26,6 @@ interface TradingDesk {
   last_updated: string
 }
 
-interface Anomaly {
-  desk_id: string
-  desk_name: string
-  issue: string
-  reported_pnl: number
-  expected_pnl: number
-  variance: number
-  root_causes: string[]
-  severity: string
-}
-
 interface Summary {
   totalDesks: number
   reconciled: number
@@ -46,7 +36,7 @@ interface Summary {
 export default function FinancialDashboardPage() {
   const [tradingDesks, setTradingDesks] = useState<TradingDesk[]>([])
   const [summary, setSummary] = useState<Summary>({ totalDesks: 0, reconciled: 0, pending: 0, anomalies: 0 })
-  const [anomalies, setAnomalies] = useState<Anomaly[]>([])
+  const [anomalies, setAnomalies] = useState<StoredAnomaly[]>([])
   const [selectedAnomaly, setSelectedAnomaly] = useState<Anomaly | null>(null)
   const [isResolving, setIsResolving] = useState(false)
   const [aiResponse, setAiResponse] = useState<any>(null)
@@ -127,8 +117,20 @@ export default function FinancialDashboardPage() {
     // Generate random anomaly total on mount
     const randomTotal = Math.floor(Math.random() * (600 - 100 + 1)) + 100
     setTotalAnomalies(randomTotal)
+    
+    const initialize = async () => {
+      // Initialize anomaly store (fetches real data on first load)
+      await AnomalyStore.init()
+      
+      // Load anomalies from store
+      const active = AnomalyStore.getActiveAnomalies()
+      setAnomalies(active)
+      anomalyStateService.updateAnomalyCount(active.length)
+      setCurrentAnomalyCount(active.length)
+    }
+    
+    initialize()
     fetchTradingDesks()
-    fetchAnomalies()
   }, [])
 
   useEffect(() => {
@@ -142,9 +144,9 @@ export default function FinancialDashboardPage() {
         setTradingDesks(deskData.tradingDesks)
         setSummary(deskData.summary)
 
-        const anomalyResponse = await fetch('/api/anomalies')
-        const anomalyData = await anomalyResponse.json()
-        setAnomalies(anomalyData.anomalies)
+        // Load from anomaly store
+        const active = AnomalyStore.getActiveAnomalies()
+        setAnomalies(active)
         
         toast({
           title: "Dashboard Refreshed",
@@ -182,16 +184,15 @@ export default function FinancialDashboardPage() {
     }
   }
 
-  const fetchAnomalies = async () => {
+  const fetchAnomalies = () => {
     try {
-      const response = await fetch('/api/anomalies')
-      const data = await response.json()
+      const active = AnomalyStore.getActiveAnomalies()
       const previousCount = currentAnomalyCount
-      const currentCount = data.anomalies.length
+      const currentCount = active.length
       anomalyStateService.updateAnomalyCount(currentCount)
       setPreviousAnomalyCount(previousCount)
       setCurrentAnomalyCount(currentCount)
-      setAnomalies(data.anomalies)
+      setAnomalies(active)
 
       if (previousCount !== 0 && previousCount > currentCount) {
         setShowResolutionPopup(true)
@@ -214,9 +215,13 @@ export default function FinancialDashboardPage() {
       })
       const result = await response.json()
       setResolvedAnomaly(result)
+      
+      // Mark as resolved in anomaly store
+      AnomalyStore.markResolved(deskId)
+      
       // Refresh data
       await fetchTradingDesks()
-      await fetchAnomalies()
+      fetchAnomalies()
 
       if (!options?.suppressToast) {
         toast({

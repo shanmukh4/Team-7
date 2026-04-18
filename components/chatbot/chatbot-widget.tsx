@@ -12,6 +12,7 @@ import { ComparisonChart } from "./comparison-chart"
 import { useChatbot } from "./chatbot-provider"
 import { anomalyStateService } from "@/components/anomaly-state.service"
 import { isFinancialQuery } from "@/app/api/utils/simple-rbac"
+import { AnomalyStore } from "@/lib/anomaly-store"
 
 interface ComparisonData {
   companies: string[]
@@ -397,9 +398,9 @@ Please provide a detailed analysis and solution recommendations. After analysis,
           await new Promise(resolve => setTimeout(resolve, 500))
 
           try {
-            const anomaliesResponse = await fetch('/api/anomalies')
-            const anomaliesData = await anomaliesResponse.json()
-            anomalyStateService.updateAnomalyCount(anomaliesData.anomalies.length)
+            // Get updated anomaly count from store
+            const active = AnomalyStore.getActiveAnomalies()
+            anomalyStateService.updateAnomalyCount(active.length)
           } catch (error) {
             console.error('[CHATBOT] Failed to refresh anomaly count:', error)
           }
