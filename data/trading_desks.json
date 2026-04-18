@@ -5,40 +5,40 @@
       "desk_name": "Equities - New York",
       "region": "USA",
       "type": "Equities",
-      "status": "Reconciled",
-      "pnl_reported": 52.5,
+      "status": "Anomaly",
+      "pnl_reported": 58.5,
       "pnl_expected": 52.5,
-      "variance": 0,
-      "last_updated": "2026-04-16T10:19:12.578Z"
+      "variance": 6.0,
+      "last_updated": "2026-04-18T10:19:12.578Z"
     },
     {
       "desk_id": "D002",
       "desk_name": "FICC Rates - London",
       "region": "UK",
       "type": "FICC",
-      "status": "Reconciled",
-      "pnl_reported": 105.8,
+      "status": "Anomaly",
+      "pnl_reported": 112.8,
       "pnl_expected": 105.8,
-      "variance": 0,
-      "last_updated": "2026-04-16T10:18:30.172Z"
+      "variance": 7.0,
+      "last_updated": "2026-04-18T10:18:30.172Z"
     },
     {
       "desk_id": "D003",
       "desk_name": "Commodities - Singapore",
       "region": "APAC",
       "type": "Commodities",
-      "status": "Reconciled",
-      "pnl_reported": 18.5,
+      "status": "Anomaly",
+      "pnl_reported": 24.5,
       "pnl_expected": 18.5,
-      "variance": 0,
-      "last_updated": "2026-04-15T12:04:39.390Z"
+      "variance": 6.0,
+      "last_updated": "2026-04-18T12:04:39.390Z"
     },
     {
       "desk_id": "D004",
       "desk_name": "FX Trading - Tokyo",
       "region": "APAC",
       "type": "FX",
-      "status": "Reconciled",
+      "status": "Pending",
       "pnl_reported": 9.1,
       "pnl_expected": 9.1,
       "variance": 0,
@@ -181,11 +181,11 @@
       "desk_name": "Emerging Markets FX - Singapore",
       "region": "APAC",
       "type": "FX",
-      "status": "Anomaly",
-      "pnl_reported": 25.7,
+      "status": "Reconciled",
+      "pnl_reported": 28.2,
       "pnl_expected": 28.2,
-      "variance": -2.5,
-      "last_updated": "2026-04-16T11:25:00.000Z"
+      "variance": 0,
+      "last_updated": "2026-04-18T05:29:22.203Z"
     },
     {
       "desk_id": "D018",
@@ -205,7 +205,7 @@
       "type": "Derivatives",
       "status": "Anomaly",
       "pnl_reported": 31.2,
-      "pnl_expected": 35.0,
+      "pnl_expected": 35,
       "variance": -3.8,
       "last_updated": "2026-04-17T09:20:00.000Z"
     },
@@ -238,7 +238,7 @@
       "type": "Equities",
       "status": "Anomaly",
       "pnl_reported": 18.4,
-      "pnl_expected": 21.0,
+      "pnl_expected": 21,
       "variance": -2.6,
       "last_updated": "2026-04-17T10:35:00.000Z"
     },
@@ -311,8 +311,8 @@
   ],
   "summary": {
     "totalDesks": 128,
-    "reconciled": 90,
+    "reconciled": 91,
     "pending": 39,
-    "anomalies": 11
+    "anomalies": 10
   }
 }

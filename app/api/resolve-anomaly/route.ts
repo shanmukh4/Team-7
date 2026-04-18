@@ -1,58 +1,59 @@
 import { NextResponse } from "next/server"
-import fs from "fs/promises"
-import path from "path"
+import tradingDesksData from "@/data/trading_desks.json"
 
-const TRADING_FILE = path.join(process.cwd(), "data", "trading_desks.json")
+// In-memory store for resolved anomalies (works in Vercel)
+// Note: This will reset on each deployment, but prevents file write errors in serverless
+const resolvedAnomalies = new Set<string>()
 
 export async function POST(request: Request) {
   try {
     const { desk_id } = await request.json()
 
-    const raw = await fs.readFile(TRADING_FILE, 'utf8')
-    const trading = JSON.parse(raw)
-
-    const deskIndex = trading.tradingDesks.findIndex((d: any) => d.desk_id === desk_id)
-    if (deskIndex === -1) {
+    // Find the desk in the static data
+    const desk = tradingDesksData.tradingDesks.find((d: any) => d.desk_id === desk_id)
+    if (!desk) {
       return NextResponse.json({ error: "Desk not found" }, { status: 404 })
     }
 
-    const desk = trading.tradingDesks[deskIndex]
-    const actions_taken: string[] = []
-
-    // Simulate automated fixes: refresh market data and FX (scripted)
-    actions_taken.push('Market data refreshed')
-    actions_taken.push('FX rates updated')
-    actions_taken.push('Valuation recalculated')
-
-    const corrected_pnl = desk.pnl_expected
-
-    // Update the desk entry
-    trading.tradingDesks[deskIndex].status = 'Reconciled'
-    trading.tradingDesks[deskIndex].pnl_reported = corrected_pnl
-    trading.tradingDesks[deskIndex].variance = 0
-    trading.tradingDesks[deskIndex].last_updated = new Date().toISOString()
-
-    // Update summary counts
-    if (typeof trading.summary === 'object') {
-      trading.summary.anomalies = Math.max(0, (trading.summary.anomalies || 0) - 1)
-      trading.summary.reconciled = (trading.summary.reconciled || 0) + 1
-      if (trading.summary.pending && trading.summary.pending > 0) trading.summary.pending = Math.max(0, trading.summary.pending - 0)
+    // Check if this desk is in anomaly status
+    if (desk.status !== "Anomaly") {
+      return NextResponse.json({ 
+        message: "Desk is already reconciled",
+        desk_id: desk.desk_id,
+        status: desk.status,
+        final_pnl: desk.pnl_reported,
+        timestamp: new Date().toISOString()
+      })
     }
 
-    // Persist file
-    await fs.writeFile(TRADING_FILE, JSON.stringify(trading, null, 2), 'utf8')
+    // Mark as resolved in memory
+    resolvedAnomalies.add(desk_id)
+
+    const actions_taken = [
+      'Market data refreshed',
+      'FX rates updated',
+      'Valuation recalculated',
+      'P&L variance reconciled'
+    ]
 
     const result = {
       desk_id: desk.desk_id,
+      desk_name: desk.desk_name,
       status: 'Reconciled',
       actions_taken,
-      final_pnl: corrected_pnl,
+      final_pnl: desk.pnl_expected,
+      previous_variance: desk.variance,
       timestamp: new Date().toISOString()
     }
 
     return NextResponse.json(result)
   } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Failed to resolve anomaly' }, { status: 500 })
+    console.error('[RESOLVE-ANOMALY] Error:', err)
+    return NextResponse.json({ error: 'Failed to resolve anomaly', details: String(err) }, { status: 500 })
   }
+}
+
+// Helper function to check if an anomaly is resolved
+export function isAnomalyResolved(deskId: string): boolean {
+  return resolvedAnomalies.has(deskId)
 }
