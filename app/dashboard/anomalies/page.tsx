@@ -10,11 +10,13 @@ import { useToast } from "@/components/ui/use-toast"
 
 interface Anomaly {
   id: string
+  desk_id: string
   title: string
   reportedPnL: number
   expectedPnL: number
   rootCause?: string
   status: "open" | "resolving" | "resolved"
+  variance: number
 }
 
 const initialAnomalies: Anomaly[] = [
@@ -106,7 +108,33 @@ export default function AnomaliesPage() {
   const [resolvingStep, setResolvingStep] = useState<string>("")
   const [userRole, setUserRole] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isResolving, setIsResolving] = useState(false)
   const { toast } = useToast()
+
+  // Fetch anomalies from API
+  const fetchAnomalies = async () => {
+    try {
+      const response = await fetch('/api/anomalies')
+      const data = await response.json()
+      if (data.anomalies && Array.isArray(data.anomalies)) {
+        const mapped = data.anomalies.map((a: any) => ({
+          id: a.desk_id,
+          desk_id: a.desk_id,
+          title: a.desk_name || a.issue,
+          reportedPnL: a.reported_pnl,
+          expectedPnL: a.expected_pnl,
+          variance: a.variance,
+          rootCause: a.root_causes?.[0] || 'Unknown',
+          status: 'open' as const
+        }))
+        setAnomalies(mapped)
+      }
+    } catch (error) {
+      console.error('[ANOMALIES] Failed to fetch anomalies:', error)
+      // Fall back to initial data if API fails
+      setAnomalies(initialAnomalies)
+    }
+  }
 
   // Check user role on mount
   useEffect(() => {
@@ -137,10 +165,12 @@ export default function AnomaliesPage() {
     checkUserRole()
   }, [])
 
-  // Reset anomalies on mount (no persistence)
+  // Fetch anomalies on mount
   useEffect(() => {
-    setAnomalies(initialAnomalies)
-  }, [])
+    if (!isLoading) {
+      fetchAnomalies()
+    }
+  }, [isLoading])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -169,7 +199,11 @@ export default function AnomaliesPage() {
   }
 
   const handleAutoResolve = async (id: string) => {
+    const anomaly = anomalies.find(a => a.id === id)
+    if (!anomaly) return
+
     setResolvingId(id)
+    setIsResolving(true)
     setAnomalies(prev => prev.map(a => a.id === id ? { ...a, status: "resolving" } : a))
 
     const steps = [
@@ -179,32 +213,88 @@ export default function AnomaliesPage() {
       "Updating records..."
     ]
 
-    for (const step of steps) {
-      setResolvingStep(step)
-      await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      for (const step of steps) {
+        setResolvingStep(step)
+        await new Promise(resolve => setTimeout(resolve, 1500))
+      }
+
+      // Call the backend API to resolve the anomaly
+      const response = await fetch('/api/resolve-anomaly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ desk_id: anomaly.desk_id })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to resolve anomaly')
+      }
+
+      // Instantly remove the anomaly from the UI (optimistic update)
+      setAnomalies(prev => prev.filter(a => a.id !== id))
+
+      // Show success message
+      toast({
+        title: "Anomaly Resolved",
+        description: "The anomaly has been successfully resolved and removed.",
+        duration: 3000,
+      })
+
+      // Refresh anomalies data from backend to ensure consistency
+      await fetchAnomalies()
+    } catch (error) {
+      console.error('[ANOMALIES] Failed to resolve anomaly:', error)
+      // Revert the status change if API call failed
+      setAnomalies(prev => prev.map(a => a.id === id ? { ...a, status: "open" } : a))
+      toast({
+        title: "Resolution Failed",
+        description: "Failed to resolve the anomaly. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setResolvingId(null)
+      setResolvingStep("")
+      setIsResolving(false)
     }
-
-    // Remove the anomaly
-    setAnomalies(prev => prev.filter(a => a.id !== id))
-    setResolvingId(null)
-    setResolvingStep("")
-
-    toast({
-      title: "Anomaly Resolved",
-      description: "The anomaly has been successfully resolved and removed.",
-      duration: 3000,
-    })
   }
 
   const handleManualResolve = async (anomaly: Anomaly) => {
-    // Instantly resolve the anomaly
-    setAnomalies(prev => prev.filter(a => a.id !== anomaly.id))
-    
-    toast({
-      title: "Anomaly Resolved",
-      description: `"${anomaly.title}" has been manually resolved and removed.`,
-      duration: 3000,
-    })
+    setIsResolving(true)
+    try {
+      // Call the backend API to resolve the anomaly
+      const response = await fetch('/api/resolve-anomaly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ desk_id: anomaly.desk_id })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to resolve anomaly')
+      }
+
+      // Instantly remove the anomaly from the UI (optimistic update)
+      setAnomalies(prev => prev.filter(a => a.id !== anomaly.id))
+      
+      toast({
+        title: "Anomaly Resolved",
+        description: `"${anomaly.title}" has been manually resolved and removed.`,
+        duration: 3000,
+      })
+
+      // Refresh anomalies data from backend to ensure consistency
+      await fetchAnomalies()
+    } catch (error) {
+      console.error('[ANOMALIES] Failed to resolve anomaly:', error)
+      toast({
+        title: "Resolution Failed",
+        description: "Failed to resolve the anomaly. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setIsResolving(false)
+    }
   }
 
   const activeAnomalies = anomalies.filter(a => a.status !== "resolved")
